@@ -589,7 +589,9 @@ Stanisław Tomaszewski 1C.`;
         });
         
         // Mobile menu close
-        $("#mobile-menu").classList.remove("active");
+        const menu = $("#mobile-menu");
+        menu.classList.remove("active");
+        document.body.style.overflow = ""; // reset scroll
 
         const app = $("#app");
         app.textContent = "";
