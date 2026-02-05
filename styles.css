@@ -201,8 +201,8 @@ body {
   inset: 0;
   background-size: cover;
   /* Keep faces (usually higher) in frame for portrait-ish photos */
-  background-position: 50% 15%;
-  transform: scale(1.01);
+  background-position: 50% 38%;
+  transform: none;
   filter: saturate(1.06) contrast(1.06);
 }
 

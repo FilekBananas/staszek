@@ -220,7 +220,7 @@
           el(
             "div",
             { class: "brand-subtitle" },
-            "statycznie • JS • La Familia"
+            "La Familia"
           ),
         ]),
       ]
@@ -251,11 +251,12 @@
   function buildFooter() {
     const candidate = window.STASZEK?.candidate;
     const ig = "https://www.instagram.com/tomaszewski_2026/";
+    const creatorUrl = "http://filip.biskupski.site/public/";
     const foot = el("footer", { class: "footer" }, [
       el(
         "div",
         {},
-        `© ${new Date().getFullYear()} ${candidate?.name || "Stanisław Tomaszewski"}. Wszelkie prawa zastrzeżone.`
+        `© ${new Date().getFullYear()} Filip Biskupski. Wszelkie prawa zastrzeżone.`
       ),
       el(
         "div",
@@ -268,6 +269,18 @@
             "@tomaszewski_2026"
           ),
           " • Masz pomysł lub chcesz o coś zapytać / skontaktować się ze mną? Napisz na IG.",
+        ]
+      ),
+      el(
+        "div",
+        { style: { marginTop: "6px" } },
+        [
+          "Wykonanie strony: ",
+          el(
+            "a",
+            { href: creatorUrl, target: "_blank", rel: "noopener noreferrer" },
+            "Filip Biskupski"
+          ),
         ]
       ),
     ]);
