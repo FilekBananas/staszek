@@ -1,58 +1,644 @@
-<!doctype html>
-<html lang="pl" data-theme="navy">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#070b1b" />
-    <meta
-      name="description"
-      content="STASZEK DLA STASZICA — program, aktualności i plakaty wyborcze Stanisława Tomaszewskiego."
-    />
-    <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
-    <link rel="mask-icon" href="assets/icon-mask.svg" color="#F2C45A" />
-    <meta name="author" content="Filip Biskupski" />
-    <meta name="copyright" content="© Filip Biskupski. Wszelkie prawa zastrzeżone." />
-    <meta name="google-site-verification" content="FilnKYGDkILUQSrdWXIJ8Yr9CObmaNTGHHYp3KUBc58" />
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STASZEK DLA STASZICA</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
 
-    <!-- Social preview -->
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="pl_PL" />
-    <meta property="og:site_name" content="STASZEK DLA STASZICA" />
-    <meta property="og:title" content="STASZEK DLA STASZICA" />
-    <meta
-      property="og:description"
-      content="Program • aktualności • plakaty wyborcze — Stanisław Tomaszewski."
-    />
-    <meta
-      property="og:image"
-      content="zdjęcia/plakat-wyborczy-staszek-dla-staszica-plakat-glowny.jpeg"
-    />
-    <meta property="og:image:alt" content="Plakat: STASZEK DLA STASZICA" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="STASZEK DLA STASZICA" />
-    <meta
-      name="twitter:description"
-      content="Program • aktualności • plakaty wyborcze — Stanisław Tomaszewski."
-    />
-    <meta
-      name="twitter:image"
-      content="zdjęcia/plakat-wyborczy-staszek-dla-staszica-plakat-glowny.jpeg"
-    />
-    <title>STASZEK DLA STASZICA</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <canvas id="bg" class="bg" aria-hidden="true"></canvas>
-    <div id="app" class="app" aria-live="polite"></div>
+  <div id="top-bar">
+    <div id="logo" onclick="window.location.hash='#/'">#staszekdlastaszica</div>
+    <div class="right-section">
+        <nav class="top-nav">
+            <a href="#/" data-route="start">Strona główna</a>
+            <a href="#/aktualnosci" data-route="aktualnosci">Aktualności</a>
+            <a href="#/pomysly" data-route="pomysly">Program</a>
+            <a href="#/plakaty" data-route="plakaty">Plakaty</a>
+        </nav>
+        
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle menu">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+    </div>
+  </div>
 
-    <noscript>
-      <div class="noscript">
-        Ta strona wymaga włączonego JavaScript.
+  <div class="mobile-menu" id="mobile-menu">
+    <nav class="mobile-nav">
+      <a href="#/" class="mobile-nav-link">Strona główna</a>
+      <a href="#/aktualnosci" class="mobile-nav-link">Aktualności</a>
+      <a href="#/pomysly" class="mobile-nav-link">Program</a>
+      <a href="#/plakaty" class="mobile-nav-link">Plakaty</a>
+    </nav>
+  </div>
+
+  <main id="app">
+  </main>
+
+  <footer id="contact">
+    <div class="footer-content">
+      <div class="footer-columns">
+        <div class="footer-column footer-contact">
+          <h4>Kontakt</h4>
+          <a href="https://www.instagram.com/tomaszewski_2026/">
+            Instagram: @tomaszewski_2026
+          </a>
+
+          <h4><br>Kontakt (webmaster)</h4>
+
+          <a href="mailto:alex@gtfs.cc">
+            Email: alex@gtfs.cc
+          </a>
+
+          <a href="tel:+48507049770">
+            Telefon: +48 507 049 770
+          </a>
+
+          <a>Discord: ax7a</a>
+        </div>
+        <div class="footer-column">
+          <h4>Zasoby</h4>
+          <a href="https://github.com/gtfscc/">GitHub (Webmaster)</a>
+          <a href="https://github.com/FilekBananas/staszek">GitHub (Hosting)</a>
+        </div>
       </div>
-    </noscript>
+      <div class="footer-bottom">
+        <p>CMS and design by Alexander Dubis</p>
+        <div id="dynamic-footer-text" style="font-family: 'new lots'; font-size: 25px;"><a href="https://gtfs.cc/">gtfs.cc</a></div>
+      </div>
+    </div>
+  </footer>
 
-    <script defer src="data/content.js"></script>
-    <script defer src="app.js"></script>
-  </body>
+  <script>
+    (() => {
+  const images = {
+    main: "zdjęcia/zdjęcie_main.jpeg",
+    program: "zdjęcia/zdjęcie_program.jpeg",
+    staff: "zdjęcia/zdjęcie_sztab.jpeg",
+    erasmus: "zdjęcia/erasmus-grafika.jpeg",
+    posters: [
+      {
+        src: "zdjęcia/plakat-wyborczy-staszek-dla-staszica-plakat-glowny.jpeg",
+        title: "Plakat główny",
+        subtitle: "STASZEK DLA STASZICA",
+      },
+      {
+        src: "zdjęcia/plakat-wyborczy-W_samo_poludnie_stanislaw_tomaszewski.jpeg",
+        title: "W samo południe",
+        subtitle: "Stanisław Tomaszewski",
+      },
+      {
+        src: "zdjęcia/plakat-wyborczy_i_want_you_for_my_army.jpeg",
+        title: "I want you for my army",
+        subtitle: "La Familia wzywa",
+      },
+    ],
+  };
+
+  const program = [
+  {
+    id: 1,
+    title: "Erasmus+",
+    approved: true,
+    tags: ["wyjazdy", "UE", "projekty"],
+    lead: "Erasmus+ w Staszicu to konkretne projekty, wymiany i realne środki z UE. Wszystko już dogadane.",
+    spotlightImage: images.erasmus,
+    spotlightText: `Mam dla Was propozycję nie do odrzucenia. 🌹🍷
+
+Erasmus+ w Staszicu.
+
+Bez gadania, że „może się uda” albo „zobaczymy”.
+Po prostu wchodzimy w to na serio.
+
+Są darmowe wyjazdy, są projekty międzynarodowe i są pieniądze z Unii, z których możemy korzystać. 🇪🇺💰
+Dyrekcja dała zielone światło, mamy pełne wsparcie i możemy działać.
+
+Teraz wszystko zależy od nas.
+
+Możesz dołączyć i coś z tego mieć albo patrzeć z boku, jak inni korzystają.
+
+Wybór jest prosty.
+
+#staszekdlastaszica`,
+  },
+  {
+    id: 2,
+    title: "Budżet uczniowski",
+    approved: true,
+    tags: ["samorząd", "finanse", "projekty"],
+    lead: "Uczniowie decydują o realnej puli środków. Pomysły przechodzą z rozmów do realizacji.",
+  },
+  {
+    id: 3,
+    title: "STS Pogoria",
+    approved: true,
+    tags: ["wyjazdy", "integracja"],
+    lead: "Więcej wspólnych działań poza szkołą. Integracja, sport, odpoczynek i klimat Staszica.",
+  },
+  {
+    id: 4,
+    title: "Zniżki dla wszystkich uczniów w wybranych lokalach",
+    approved: true,
+    tags: ["zniżki", "benefity"],
+    lead: "Negocjacje z lokalami przyniosły zniżki dostępne dla każdego ucznia, nie tylko dla znajomych.",
+  },
+  {
+    id: 5,
+    title: "Szkolny serwer Minecraft",
+    approved: true,
+    tags: ["gaming", "społeczność"],
+    lead: "Serwer dla Staszica, wspólna zabawa, eventy i budowanie szkolnej społeczności bez dram.",
+  },
+  {
+    id: 6,
+    title: "Wspólny dysk z notatkami",
+    approved: true,
+    tags: ["nauka", "współpraca"],
+    lead: "Porządek w materiałach: jeden dysk, sensowna struktura i szybkie znajdowanie notatek.",
+  },
+  {
+    id: 7,
+    title: "TEDxYouth",
+    approved: true,
+    tags: ["wydarzenia", "inspiracja"],
+    lead: "Wielkie wystąpienia i ciekawe idee. Scena dla uczniów, prelegentów i projektów.",
+  },
+  {
+    id: 8,
+    title: "Zakup mikrofalówek na stołówkę",
+    approved: true,
+    tags: ["stołówka", "komfort"],
+    lead: "Mikrofalówki na stołówce; proste, praktyczne i przydatne każdego dnia.",
+  },
+  {
+    id: 9,
+    title: "Szkolne koło MUN-owe",
+    approved: true,
+    tags: ["debata", "dyplomacja"],
+    lead: "Model United Nations w Staszicu. Debaty, symulacje i nauka argumentowania w praktyce.",
+  },
+  {
+    id: 10,
+    title: "Postulat specjalny",
+    approved: true,
+    tags: ["specjalny"],
+    lead: "Punkt specjalny, miejsce na propozycję, którą ogłosimy w odpowiednim momencie.",
+  },
+  {
+    id: 11,
+    title: "Targi uniwersyteckie",
+    approved: true,
+    tags: ["przyszłość", "studia"],
+    lead: "Spotkania z uczelniami. Konkretne informacje o kierunkach, ścieżkach i wyborach bez zgadywania.",
+  },
+  {
+    id: 12,
+    title: "Powrót staszicowych skarpetek",
+    approved: true,
+    tags: ["merch", "klimat"],
+    lead: "Legenda wraca. Staszicowe skarpetki znów dostępne, tak jak powinno być.",
+  },
+  {
+    id: 13,
+    title: "Kontynuacja postulatów",
+    approved: true,
+    tags: ["ciągłość", "realizacja"],
+    lead: "Nie przerywamy projektów. Kontynuujemy to, co działa, i wprowadzamy nowe rzeczy do końca.",
+  }
+];
+
+  const staff = [
+    "Alex Dubis (Webmaster)",
+    "Alexander Kołtuński",
+    "Adam Rowiński",
+    "Adam Zaleski",
+    "Borys Pietrewicz",
+    "Dawid Chudzik",
+    "Filip Biskupski (Prompt Engineering)",
+    "Ilya Lapshin",
+    "Kuba Dyrektor",
+    "Kuba Świcarz",
+    "Kostek Opas",
+    "Krzysztof Stachowiak",
+    "Łukasz Parda",
+    "Maciej Sołowiński",
+    "Maksymilian Wysokiński",
+    "Mateusz Dornowski (Senator 1C)",
+    "Mateusz Mieszkowski",
+    "Mikołaj Głowacki",
+    "Miron Ławrynowicz",
+    "Nikita Harhots",
+    "Oliwier Kwiatkowski",
+    "Oskar Sienkiewicz",
+    "Patryk Niewczas",
+    "Piotrek Goździk",
+    "Przemysław Kamiński",
+    "Ryszard Karaś",
+    "Stanisław Lewandowski",
+    "Szymon Kaczkowski",
+  ];
+
+  const news = [
+    {
+      id: "post-program",
+      title: "#STASZEK DLA STASZICA — 13 punktów",
+      date: "",
+      image: images.program,
+      tags: ["program", "dyrekcja"],
+      body: `Przychodzę dziś do Was z szacunkiem, by złożyć propozycję nie do odrzucenia. 🌹🍷
+
+Na stole kładę 13 konkretnych punktów.
+Od wprowadzenia Erasmusa+ , poprzez włączające inicjatywy, aż po powrót legendarnych staszicowych skarpetek.
+To nie jest lista życzeń. To kontrakt dla Rodziny Staszica, który został już wynegocjowany.
+
+Mogę Wam oficjalnie ogłosić: Mamy zielone światło od Dyrekcji na WSZYSTKIE postulaty. 👀🤝
+Góra zaakceptowała plan, a więc zabawa oficjalnie się zaczyna🔫
+Kto to zrealizuje?
+Nie ja sam. Zrobi to moja La Familia. 🇮🇹
+
+Mój sztab to ludzie wybitni, ambitni i bezwzględnie skuteczni. To oni dopilnują każdego szczegółu. Kiedy my mówimy, że coś zrobimy, praktycznie jest to już zrobione.
+Przeanalizujcie te punkty. Kolejne karty odkryjemy w najbliższych dniach.
+Wybierzcie mądrze🫶
+
+#staszekdlastaszica`,
+    },
+    {
+      id: "post-erasmus",
+      title: "Erasmus+ w Staszicu",
+      date: "",
+      image: images.erasmus,
+      tags: ["erasmus", "UE", "wyjazdy"],
+      body: program[0].spotlightText,
+    },
+    {
+      id: "post-main",
+      title: "Przychodzę z propozycją",
+      date: "",
+      image: images.main,
+      tags: ["start", "kim-jestem"],
+      body: `Przychodzę dziś do Was z szacunkiem, by prosić o zaufanie, a zarazem złożyć propozycję nie do odrzucenia.🇮🇹🇮🇹
+
+Nazywam się Stanisław. Niektórzy znają mnie z Genewy , inni z korytarzu, jeszcze inni z kółek i wyników. Jestem na profilu MAT-FIZ-INF, ale liczby to dla mnie nie wszytko. Prawdziwa zabawa zaczyna się tam, gdzie trzeba zarządzać ludźmi i kierować projektami.
+Bylem koordynatorem wielu projektów uczniowskich, między innymi naszego szkolnego projektu w konkursie AGO allience, mojego zespołu AeroDynamics w Learn&Fly, i wiele innych. Ponadto jestem CMO I CCO w zespole STEM Racing (STC Racing). Kiedy Wy odpoczywacie, ja koordynuję projekty, załatwiam sponsorów i dbam o to, by machina działała sprawnie. Ponadto walczę w Olimpiadzie Fizycznej, póki co udało mi się dojść do cześć doświadczalnej, a więc wiem, co to znaczy z sukcesem mierzyć wysoko.🚀🚀
+
+Szkola to nie tylko nauka. To dyplomacja🤝
+Pasjonuję się debatowaniem, gdyż wiem, że słowa mają wagę, a argumenty siłę zdolną przesuwać góry. Tę właśnie siłę wykorzystuję w praktyce. Jako koordynator wielu inicjatyw, wielokrotnie siadałem do stołu z Dyrekcją, by twardo negocjować warunki dla uczniów. Wychodziłem z tych spotkań ze skutecznie załatwionymi sprawami. Angażuję się od dawna w wolontariat, bo dobry lider musi dbać o swoją społeczność, działać na rzecz innych osób.
+A mój uśmiech? Mówią, że potrafię się ładnie uśmiechać. Wierzę, że jest to naprawdę przydatne narzędzie, otwiera drzwi, które dla innych pozostają zamknięte.
+
+Nie obiecuję cudów. Obiecuję skuteczność🫶
+
+Pamiętajcie o tym przy urnach🥂🌹🇮🇹`,
+    },
+    {
+      id: "post-staff",
+      title: "La Familia — sztab",
+      date: "",
+      image: images.staff,
+      tags: ["sztab", "ludzie"],
+      body: `Prawdziwa siła to nie jednostka. To La Familia.
+To ludzie, którym ufam bezgranicznie. Moi Consiglieri.
+ Nie pytajcie, co oni robią dla szkoły. Pytajcie, czego nie byliby w stanie zrobić.🔫
+Razem pilnujemy interesów Staszica.
+Z nami się nie dyskutuje. Z nami się współpracuje.🌹🇮🇹
+
+W skład sztabu wchodzą najlepsi z najlepszych🫶:`,
+    },
+  ];
+
+  news.find((p) => p.id === "post-staff").body += `\n\n${staff
+    .map((n) => `- ${n}`)
+    .join("\n")}`;
+
+  const cooperationEssay = `Twoja wizja współpracy różnych Organów Samorządu Uczniowskiego
+With <3 by Stanisław Tomaszewski
+
+No więc, wyobraźmy sobie Samorząd Uczniowski, który wcale nie jest jak te zestawy klocków Lego – każdy sobie, a razem jakoś ledwo trzymają się kupy. Tu chodzi o taki układ, gdzie różne organy naprawdę grają do tej samej bramki, a nie wciskają się na siłę, jednocześnie próbując być szefem. Bo serio, kto lubi chaos, co nie?
+
+W mojej wizji... no cóż, kluczem do sukcesu jest, żeby każdy znał swoje miejsce – niech każdy robi to, co potrafi najlepiej, i nikt nie próbuje namieszać tam, gdzie nie trzeba. A jeszcze lepiej, gdy wszyscy dogadują się na jasnych zasadach, od A do Z, bo bez tego to jak gra w piłkę bez sędziego – kto chce, ten może kopać, a reszta się zastanawia, o co chodzi.
+
+Weźmy na przykład Komisję Wyborczą, ich zadaniem jest ogarnąć wybory. Proste, nie? Zero stronniczości, żadnych faworyzacji, czysta robota. Bez tego nie ma zabawy. Trybunał Regulaminowy zrobi za sędziego i kogoś, kto przy okazji pogodzi spory, gdy zacznie się niepotrzebne zamieszanie.
+
+No a Senat? To takie miejsce, gdzie można pogadać, trochę poobserwować, no i pilnować, czy wszystko gra, zwłaszcza co robi władza wykonawcza. Prezydent Samorządu to nie boss, co krzyczy „ja tu rządzę”, tylko taki pan od koordynacji – trochę jak dyrygent, który pilnuje, by orkiestra zagrała razem (tak, wiem, nie każdy lubi orkiestry, ale to dobra metafora, serio).
+
+I teraz, żeby wszystko to miało ręce i nogi, trzeba jeszcze dobrze gadać, a tu mowa o komunikacji jasnej jak słońce na niebie. Wszelkie informacje o wyborach, dyskusjach czy konsultacjach winny pojawić się jednocześnie na szkolnej stronie i w kanałach samorządowych, bo inaczej szybko robi się bałagan, a przecież nie chcemy, żeby ktoś przegapił coś ważnego, prawda?
+
+No i dobrze by było, żeby każde „tak jest”, czyli decyzje komisji i trybunału miały krótkie wyjaśnienie oparte na regulaminie, trochę przezroczystości nikomu nie zaszkodzi, a wręcz przeciwnie, pozwala uniknąć telepatycznego zgadywania, dlaczego coś akurat tak, a nie inaczej.
+
+A kiedy przychodzi czas wyborów, no to wtedy każda część samorządu ma swoje 5 minut: Komisja układa harmonogram i trzyma rękę na pulsie, Senat, organizuje debatę, żeby nikt nie siedział cicho, a reszta pomaga w sprawach organizacyjnych, ale spokojnie, bez wchodzenia w krzykliwą rywalizację kandydatów.
+
+W ten sposób kampania jest fair, a uczniowie mają czyste info, na którym mogą się oprzeć, wybierając swoich reprezentantów. Nie zapominajmy o kontroli i rozwiązywaniu konfliktów – bo nie wszystko zawsze pójdzie gładko, oj nie.
+
+Moim zdaniem ważne jest, żeby były jasne ścieżki odwoławcze, krótkie terminy i żeby osoby uczestniczące w sporze odpadały z oceny sprawy, inaczej to robi się trochę chaotyczne.
+
+W sumie, samorząd powinien być jak dobrze naoliwiona maszyna, gdzie części się nie gryzą na śmierć, tylko działają na rzecz jakiegoś wspólnego dobra.
+
+I najważniejsze, współpraca nie kończy się po wynikach wyborów. Trzeba potem wspólnie spojrzeć, co poszło gładko, a gdzie jeszcze coś zgrzytało. Tylko wtedy da się zrobić coś lepiej następnym razem. Bo serio, nie ma nic nudniejszego niż wciąż ten sam bałagan bez nauki na błędach, prawda?
+
+Podsumowując (ale nie oficjalnie), samorząd marzeń to taki, co działa razem, nie jak banda amatorów każdego na swojemu. Przejrzystość, szacunek dla kompetencji i rozmowa, trochę jak podczas przerw między lekcjami, to właśnie daje prawdziwy głos uczniom. No i jeszcze fajne uczucie, że nie jesteśmy sami w tej szkolnej dżungli.
+
+Stanisław Tomaszewski 1C.`;
+
+  window.STASZEK = {
+    candidate: {
+      name: "Stanisław Tomaszewski",
+      profile: "mat-fiz-inf",
+      title: "Kandydat na Prezydenta Staszica",
+    },
+    hashtag: "#staszekdlastaszica",
+    images,
+    program,
+    staff,
+    news,
+    cooperationEssay,
+  };
+})();
+  </script>
+
+  <!-- APP LOGIC SCRIPT -->
+  <script>
+    (() => {
+      const state = {
+        route: "",
+        posterIndex: 0,
+        filters: {
+          aktualnosci: { search: "", tag: "" },
+          pomysly: { search: "", tag: "" },
+        },
+      };
+
+      let renderTimer = 0;
+      let restoreFocus = null;
+
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const el = (tag, attrs = {}, children = []) => {
+        const node = document.createElement(tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          if (k === "class") node.className = v;
+          else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+          else if (v === true) node.setAttribute(k, "");
+          else if (v !== false && v != null) node.setAttribute(k, String(v));
+        }
+        const arr = Array.isArray(children) ? children : [children];
+        for (const child of arr) {
+          if (child != null) node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+        }
+        return node;
+      };
+
+      const makeImage = (src, alt) => {
+        const wrap = el("div", { class: "image-wrap" });
+        const img = el("img", { src, alt, loading: "lazy" });
+        img.addEventListener("load", () => wrap.classList.add("is-loaded"));
+        wrap.appendChild(img);
+        return wrap;
+      };
+
+      const copyText = (text) => {
+        if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(String(text)).then(() => true, () => false);
+        return Promise.resolve(false);
+      };
+
+      const toast = (message) => {
+        $("#toast")?.remove();
+        const node = el("div", { id: "toast" }, message);
+        document.body.appendChild(node);
+        setTimeout(() => node.remove(), 2400);
+      };
+
+      // -- Pages Logic --
+
+      function pageStart() {
+        const { candidate, images, staff } = window.STASZEK;
+        
+        const hero = el("section", { class: "hero" }, [
+          el("div", { class: "hero-media", style: `background-image: url('${images.main}')` }),
+          el("div", { class: "hero-inner" }, [
+            el("div", { class: "hero-kicker" }, "Kontrakt dla Rodziny Staszica"),
+            el("h1", { class: "hero-h1" }, ["Stanisław ", el("span", { style: "color: #ffffff" }, "Tomaszewski")]),
+            el("p", { class: "hero-p" }, `Kandydat na Prezydenta • ${candidate.profile}`),
+            el("div", { class: "meta-row" }, [
+              el("a", { class: "btn", href: "#/pomysly" }, "Program"),
+              el("a", { class: "btn btn-primary", href: "#/aktualnosci" }, "Aktualności")
+            ])
+          ])
+        ]);
+
+        const cards = el("div", { class: "grid three" }, [
+          el("div", { class: "card" }, [
+            el("h3", {}, "Program"),
+            el("p", {}, "Konkrety. Sprawdź 13 punktów wyborczych."),
+            el("a", { class: "btn", href: "#/pomysly", style: "background-color: #121625; color: #ffffff" }, "Zobacz")
+          ]),
+          el("div", { class: "card" }, [
+            el("h3", {}, "Aktualności"),
+            el("p", {}, "Co się dzieje w kampanii? Najnowsze informacje."),
+            el("a", { class: "btn", href: "#/aktualnosci" }, "Czytaj")
+          ]),
+          el("div", { class: "card" }, [
+            el("h3", {}, "Plakaty"),
+            el("p", {}, "Pobierz i udostępnij materiały graficzne."),
+            el("a", { class: "btn", href: "#/plakaty" }, "Galeria")
+          ])
+        ]);
+
+        const staffSection = el("section", { class: "staff-section" }, [
+          el("h2", { class: "page-title", style: "margin-top: 50px; font-size: 20px;"}, "Nasz sztab"),
+          el("p", {}, ""),
+          el("div", { class: "chips", style: "margin-top: 10px; flex-wrap: wrap;" },
+            staff.map(name => 
+              el("span", { class: "chip", role: "listitem", style: "margin:4px;" }, name)
+            )
+          )
+        ]);
+
+        return el("div", {}, [hero, cards, staffSection]);
+      }
+
+      function pageAktualnosci() {
+        const posts = window.STASZEK.news || [];
+        const filter = state.filters.aktualnosci.search.toLowerCase();
+        
+        const list = el("div", { class: "grid" });
+        
+        // Search bar
+        const input = el("input", {
+          type: "search",
+          placeholder: "Szukaj w aktualnościach...",
+          value: state.filters.aktualnosci.search,
+          id: "newsSearch",
+          onInput: (e) => {
+            state.filters.aktualnosci.search = e.target.value;
+            scheduleRender({ id: "newsSearch", start: e.target.selectionStart, end: e.target.selectionEnd });
+          }
+        });
+
+        posts.filter(p => !filter || p.title.toLowerCase().includes(filter) || p.body.toLowerCase().includes(filter))
+             .forEach(p => {
+               const card = el("article", { class: "card" }, [
+                 el("div", { style: "display:flex; justify-content:space-between; align-items:baseline" }, [
+                   el("h3", {}, p.title),
+                   el("span", { style: "color:#888; font-size:13px" }, p.date)
+                 ]),
+                 p.image ? makeImage(p.image, p.title) : null,
+                 el("p", {}, p.body),
+                 el("div", { class: "meta-row" }, [
+                    ...(p.tags || []).map(t => el("span", { class: "badge" }, "#"+t)),
+                 ])
+               ]);
+               list.appendChild(card);
+             });
+
+        return el("div", {}, [
+          el("h2", { class: "page-title" }, "Aktualności"),
+          el("div", { class: "search-row" }, [input]),
+          list
+        ]);
+      }
+
+      function pagePomysly() {
+        const points = window.STASZEK.program || [];
+        const filter = state.filters.pomysly.search.toLowerCase();
+        
+        const input = el("input", {
+          type: "text",
+          placeholder: "Szukaj w programie...",
+          value: state.filters.pomysly.search,
+          id: "progSearch",
+          onInput: (e) => {
+            state.filters.pomysly.search = e.target.value;
+            scheduleRender({ id: "progSearch", start: e.target.selectionStart, end: e.target.selectionEnd });
+          }
+        });
+
+        const grid = el("div", { class: "grid" });
+        
+        points.filter(p => !filter || p.title.toLowerCase().includes(filter))
+              .forEach(p => {
+                const status = p.approved ? "Zatwierdzony" : "W trakcie";
+                const badgeClass = p.approved ? "badge ok" : "badge warn";
+                
+                grid.appendChild(el("div", { class: "card" }, [
+                  el("h3", {}, `${p.id}. ${p.title}`),
+                  el("p", {}, p.lead),
+                  el("div", { class: "meta-row" }, [
+                    el("span", { class: badgeClass }, status),
+                    ...(p.tags || []).map(t => el("span", { class: "badge" }, t))
+                  ])
+                ]));
+              });
+
+        return el("div", {}, [
+          el("h2", { class: "page-title" }, "Program Wyborczy"),
+          el("p", { class: "page-lead" }, "13 konkretnych punktów dla szkoły."),
+          el("div", { class: "search-row" }, [input]),
+          grid
+        ]);
+      }
+
+      function pagePlakaty() {
+        const posters = window.STASZEK.images.posters || [];
+        const grid = el("div", { class: "poster-grid" });
+
+        posters.forEach((p, idx) => {
+          grid.appendChild(el("div", { 
+            class: "poster-item",
+            onClick: () => openModal(p.src, p.title)
+          }, [
+            el("img", { src: p.src, loading: "lazy" })
+          ]));
+        });
+
+        return el("div", {}, [
+          el("h2", { class: "page-title" }, "Plakaty"),
+          el("p", { class: "page-lead" }, "Materiały promocyjne do pobrania."),
+          grid
+        ]);
+      }
+
+      // -- Core --
+
+      function openModal(src, title) {
+        const m = $("#modal");
+        const b = $("#modal-body");
+        if(!m || !b) return;
+        b.innerHTML = "";
+        b.appendChild(el("h3", { style: "margin-bottom:16px" }, title));
+        b.appendChild(el("img", { src, style: "width:100%; border-radius:4px" }));
+        m.setAttribute("aria-hidden", "false");
+      }
+
+      function scheduleRender(focus) {
+        restoreFocus = focus;
+        if (renderTimer) clearTimeout(renderTimer);
+        renderTimer = setTimeout(render, 0);
+      }
+
+      function render() {
+        const hash = location.hash.replace("#/", "") || "start";
+        const id = hash.split("?")[0] || "start";
+        
+        // Update Nav Active State
+        $$(".top-nav a").forEach(a => {
+           if(a.getAttribute("data-route") === id) a.setAttribute("aria-current", "page");
+           else a.removeAttribute("aria-current");
+        });
+        
+        // Mobile menu close
+        $("#mobile-menu").classList.remove("active");
+
+        const app = $("#app");
+        app.textContent = "";
+
+        let content;
+        if (id === "aktualnosci") content = pageAktualnosci();
+        else if (id === "pomysly") content = pagePomysly();
+        else if (id === "plakaty") content = pagePlakaty();
+        else content = pageStart();
+        
+        app.appendChild(content);
+
+        if (restoreFocus) {
+          const el = document.getElementById(restoreFocus.id);
+          el?.focus();
+          try { el?.setSelectionRange(restoreFocus.start, restoreFocus.end); } catch{}
+          restoreFocus = null;
+        }
+      }
+
+      // Init
+      document.addEventListener("DOMContentLoaded", () => {
+        // Build Global Modal
+        const modal = el("div", { id: "modal", class: "modal", "aria-hidden": "true", onClick: (e) => {
+            if(e.target.id === "modal") e.target.setAttribute("aria-hidden", "true");
+        }}, [
+            el("div", { class: "modal-panel" }, [
+                el("div", { class: "modal-head" }, [
+                    el("span", {}, "Podgląd"),
+                    el("button", { class: "btn", onClick: () => $("#modal").setAttribute("aria-hidden", "true") }, "Zamknij")
+                ]),
+                el("div", { id: "modal-body", class: "modal-body" })
+            ])
+        ]);
+        document.body.appendChild(modal);
+
+        // Mobile Menu Toggles
+        const btn = $("#mobile-menu-btn");
+        const menu = $("#mobile-menu");
+        btn.addEventListener("click", () => {
+             const active = menu.classList.toggle("active");
+             document.body.style.overflow = active ? "hidden" : "";
+        });
+
+        window.addEventListener("hashchange", render);
+        render(); // Initial Render
+      });
+
+    })();
+  </script>
+</body>
 </html>
