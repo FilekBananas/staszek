@@ -267,7 +267,7 @@
             { href: ig, target: "_blank", rel: "noopener noreferrer" },
             "@tomaszewski_2026"
           ),
-          " • Masz pomysł? Napisz na IG.",
+          " • Masz pomysł lub chcesz o coś zapytać / skontaktować się ze mną? Napisz na IG.",
         ]
       ),
     ]);
@@ -329,7 +329,7 @@
             "p",
             { style: { marginTop: "10px" } },
             [
-              "Masz pomysł, czego brakuje w szkole? Napisz na Instagramie: ",
+              "Masz pomysł, czego brakuje w szkole — albo po prostu chcesz o coś zapytać / skontaktować się ze mną? Napisz na Instagramie: ",
               el(
                 "a",
                 { href: ig, target: "_blank", rel: "noopener noreferrer" },
