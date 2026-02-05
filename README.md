@@ -1,4 +1,4 @@
 # staszekdlastaszica.org
 
-Content by FilekBananas
+Content by FilekBananas  
 CMS, structure and styling by gtfscc
