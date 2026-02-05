@@ -220,6 +220,7 @@
   }
 
   function buildTopbar() {
+    const creatorUrl = "http://filip.biskupski.site/public/";
     const brand = el(
       "div",
       {
@@ -271,7 +272,21 @@
       },
       "Ctrl+K"
     );
-    const tools = el("div", { class: "tools" }, [cmdBtn, themeBtn]);
+
+    const creditLink = el(
+      "a",
+      {
+        class: "icon-btn",
+        href: creatorUrl,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        title: "Wykonanie strony: Filip Biskupski",
+        "aria-label": "Wykonanie strony: Filip Biskupski",
+      },
+      "Wykonanie"
+    );
+
+    const tools = el("div", { class: "tools" }, [cmdBtn, themeBtn, creditLink]);
 
     const inner = el("div", { class: "topbar-inner" }, [brand, nav, tools]);
     return el("header", { class: "topbar" }, inner);

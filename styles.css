@@ -165,12 +165,16 @@ body {
 }
 
 .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
   border-radius: 999px;
   padding: 8px 10px;
   cursor: pointer;
+  text-decoration: none;
   transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
 }
 
@@ -219,9 +223,15 @@ body {
   inset: 0;
   background-size: cover;
   /* Keep faces (usually higher) in frame for portrait-ish photos */
-  background-position: 50% 34%;
+  background-position: 50% 30%;
   transform: none;
   filter: saturate(1.06) contrast(1.06);
+}
+
+@media (max-width: 860px) {
+  .hero-media {
+    background-position: 50% 26%;
+  }
 }
 
 .hero-overlay {
