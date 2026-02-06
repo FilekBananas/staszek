@@ -57,6 +57,27 @@ Pytanie brzmi: czy jesteś w Rodzinie, czy stoisz z boku i patrzysz, jak inni wy
       tags: ["samorząd", "finanse", "projekty"],
       lead:
         "Uczniowie decydują o realnej puli środków — pomysły przechodzą z rozmów do realizacji.",
+      spotlightImage: "zdjęcia/budzet_uczniowski.png",
+      spotlightText: `Przychodzisz do mnie z genialnym i ambitnym pomysłem bądź propozycją, ale nie masz pieniędzy?
+
+To wielki brak szacunku dla twoich możliwości🫶
+
+A więc, złożę Ci propozycję nie do odrzucenia.
+
+🌹 Budżet Uczniowski🌹
+
+Koszty? Dla nas nie istnieją. Dysponujemy naprawdę każdymi środkami.
+
+Tak, alla lettera każdymi, mamy absolutne carte blanche💰💰
+
+Jesteśmy otwarci na wszystko. Cokolwiek zechcesz zorganizować na naszym terenie, załatwimy to.
+I wiedz jedno, mamy na to pełne błogosławieństwo samej Dyrekcji. Góra przybiła swoją pieczęć. Nikt nie będzie zadawał zbędnych pytań.
+
+Przynieś Nam wniosek, moi Consiglieri zajmą się resztą 🔫🍷
+
+Capisci?????🇮🇹
+
+#staszekdlastaszica`,
     },
     {
       id: 3,
