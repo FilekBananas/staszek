@@ -5,6 +5,7 @@
     audio: {
       enabled: true,
       unlocked: false,
+      started: false,
       src: "",
       el: null,
     },
@@ -54,6 +55,7 @@
     a.loop = true;
     a.preload = "auto";
     a.volume = 0.65;
+    a.muted = false;
     state.audio.el = a;
     return a;
   }
@@ -68,107 +70,14 @@
     return map[routeId] || map.start;
   }
 
-  function normalizeKey(value) {
-    const s = String(value || "").trim().toLowerCase();
-    if (!s) return "";
-    try {
-      return s
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "")
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
-    } catch {
-      return s.replace(/[^a-z0-9]+/g, " ").trim();
-    }
-  }
-
-  function firstParagraph(text) {
-    const t = String(text || "").replace(/\r\n/g, "\n");
-    const blocks = t
-      .split(/\n{2,}/g)
-      .map((b) => b.trim())
-      .filter(Boolean);
-    return blocks[0] || "";
-  }
-
-  function extractRoseTitle(text) {
-    const t = String(text || "");
-    const m = t.match(/🌹\s*([^🌹\n]{3,80})\s*🌹/);
-    return m ? m[1].trim() : "";
-  }
-
-  function leadFromBody(body, roseTitle) {
-    const t = String(body || "").replace(/\r\n/g, "\n").trim();
-    if (!t) return "";
-    let work = t;
-    if (roseTitle) {
-      const idx = work.indexOf(roseTitle);
-      if (idx !== -1) work = work.slice(idx + roseTitle.length);
-    }
-    const p = firstParagraph(work);
-    return p
-      .replace(/\s+/g, " ")
-      .replace(/#\w+/g, "")
-      .trim()
-      .slice(0, 180);
-  }
-
-  function shouldPromotePostToIdea(post) {
-    const tags = (post?.tags || []).map((x) => normalizeKey(x));
-    const hasIdeaTag = tags.some((t) =>
-      ["pomysly", "pomysl", "pomys", "pomysły", "program", "postulat", "postulaty", "idea"].includes(t)
-    );
-    const hasRose = /🌹/.test(String(post?.body || "")) && !!extractRoseTitle(post?.body || "");
-    return Boolean(post?.program === true || hasIdeaTag || hasRose);
-  }
-
-  function augmentProgramFromNews() {
-    const s = window.STASZEK;
-    if (!s?.program || !s?.news) return;
-
-    const existingTitles = new Set(s.program.map((p) => normalizeKey(p.title)));
-    let nextId = s.program.reduce((acc, p) => {
-      const n = typeof p.id === "number" ? p.id : parseInt(String(p.id), 10);
-      return Number.isFinite(n) ? Math.max(acc, n) : acc;
-    }, 0);
-
-    for (const post of s.news) {
-      if (!shouldPromotePostToIdea(post)) continue;
-
-      const roseTitle = extractRoseTitle(post.body);
-      const title = (roseTitle || post.title || "").replace(/\s+/g, " ").trim();
-      const key = normalizeKey(title);
-      if (!key) continue;
-      if (existingTitles.has(key)) continue;
-
-      const lead = leadFromBody(post.body, roseTitle) || "Nowy pomysł z aktualności.";
-      const tags = Array.from(
-        new Set((post.tags || []).map((t) => String(t)).filter(Boolean))
-      );
-      const approved = (post.tags || [])
-        .map((t) => normalizeKey(t))
-        .includes("dyrekcja");
-
-      nextId += 1;
-      s.program.push({
-        id: nextId,
-        title,
-        approved,
-        tags,
-        lead,
-        spotlightImage: post.image || "",
-        spotlightText: post.body || "",
-      });
-      existingTitles.add(key);
-    }
-  }
-
   function setupAudioUnlockOnce() {
     if (!state.audio.enabled) return;
     if (state.audio.unlocked) return;
 
     const handler = () => {
       state.audio.unlocked = true;
+      const a = ensureAudioEl();
+      a.muted = false;
       syncAudioWithRoute(state.route || "start");
     };
 
@@ -186,6 +95,7 @@
         a.currentTime = 0;
       } catch {}
       state.audio.src = "";
+      state.audio.started = false;
       return;
     }
 
@@ -197,18 +107,51 @@
       } catch {}
     }
 
-    const p = a.play();
-    if (p && typeof p.then === "function") {
-      p.then(
+    // Autoplay policies:
+    // - If audio is already "unlocked", play with sound.
+    // - Otherwise, try with sound first (some browsers allow it), and fall back to muted autoplay.
+    const tryPlay = () => {
+      const p = a.play();
+      if (p && typeof p.then === "function") return p;
+      return Promise.resolve();
+    };
+
+    if (state.audio.unlocked) {
+      a.muted = false;
+      tryPlay().then(
         () => {
-          state.audio.unlocked = true;
+          state.audio.started = true;
         },
         () => {
-          state.audio.unlocked = false;
+          state.audio.started = false;
           setupAudioUnlockOnce();
         }
       );
+      return;
     }
+
+    a.muted = false;
+    tryPlay().then(
+      () => {
+        state.audio.started = true;
+        state.audio.unlocked = true;
+      },
+      () => {
+        a.muted = true;
+        tryPlay().then(
+          () => {
+            state.audio.started = true;
+            state.audio.unlocked = false;
+            setupAudioUnlockOnce();
+          },
+          () => {
+            state.audio.started = false;
+            state.audio.unlocked = false;
+            setupAudioUnlockOnce();
+          }
+        );
+      }
+    );
   }
 
   function el(tag, attrs = {}, children = []) {
@@ -495,31 +438,40 @@
       nav.appendChild(a);
     }
 
+    const iconWrap = el("span", { class: "audio-icon" }, audioIcon(state.audio.enabled));
+    const sr = el(
+      "span",
+      { class: "sr-only" },
+      state.audio.enabled ? "Dźwięk włączony" : "Dźwięk wyłączony"
+    );
+
     const audioBtn = el(
       "button",
       {
         class: "icon-btn icon-only",
         type: "button",
-        title: state.audio.enabled
-          ? "Wycisz / wyłącz dźwięk"
-          : "Włącz dźwięk",
-        "aria-pressed": state.audio.enabled,
+        title: "",
+        "aria-pressed": "false",
         onClick: () => {
           state.audio.enabled = !state.audio.enabled;
           saveAudioEnabled(state.audio.enabled);
           syncAudioWithRoute(state.route || "start");
-          render();
+          refreshAudioBtn();
         },
       },
-      [
-        audioIcon(state.audio.enabled),
-        el(
-          "span",
-          { class: "sr-only" },
-          state.audio.enabled ? "Dźwięk włączony" : "Dźwięk wyłączony"
-        ),
-      ]
+      [iconWrap, sr]
     );
+
+    function refreshAudioBtn() {
+      audioBtn.title = state.audio.enabled
+        ? "Wycisz / wyłącz dźwięk"
+        : "Włącz dźwięk";
+      audioBtn.setAttribute("aria-pressed", state.audio.enabled ? "true" : "false");
+      iconWrap.textContent = "";
+      iconWrap.appendChild(audioIcon(state.audio.enabled));
+      sr.textContent = state.audio.enabled ? "Dźwięk włączony" : "Dźwięk wyłączony";
+    }
+    refreshAudioBtn();
 
     const creditLink = el(
       "a",
@@ -1435,7 +1387,6 @@
 
     state.audio.enabled = loadAudioEnabled();
     setupAudioUnlockOnce();
-    augmentProgramFromNews();
 
     initBackground();
     initShortcuts();
