@@ -219,7 +219,7 @@
   }
 
   function buildTopbar() {
-    const creatorUrl = "http://filip.biskupski.site/public/";
+    const creatorUrl = "https://filip.biskupski.site/public/";
     const brand = el(
       "div",
       {
@@ -302,7 +302,7 @@
   function buildFooter() {
     const candidate = window.STASZEK?.candidate;
     const ig = "https://www.instagram.com/tomaszewski_2026/";
-    const creatorUrl = "http://filip.biskupski.site/public/";
+    const creatorUrl = "https://filip.biskupski.site/public/";
     const foot = el("footer", { class: "footer" }, [
       el(
         "div",
@@ -350,7 +350,7 @@
   function pageStart() {
     const { candidate, images } = window.STASZEK;
     const ig = "https://www.instagram.com/tomaszewski_2026/";
-    const creatorUrl = "http://filip.biskupski.site/public/";
+    const creatorUrl = "https://filip.biskupski.site/public/";
 
     const hero = el("section", { class: "hero reveal" }, [
       el("div", {
