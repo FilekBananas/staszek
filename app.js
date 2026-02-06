@@ -2,6 +2,12 @@
   const state = {
     route: "",
     posterIndex: 0,
+    audio: {
+      enabled: true,
+      unlocked: false,
+      src: "",
+      el: null,
+    },
     filters: {
       aktualnosci: { search: "", tag: "" },
       pomysly: { search: "", tag: "" },
@@ -23,6 +29,89 @@
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
+  }
+
+  function loadAudioEnabled() {
+    try {
+      const v = localStorage.getItem("staszek_audio");
+      if (v === "0") return false;
+      if (v === "1") return true;
+    } catch {}
+    return true;
+  }
+
+  function saveAudioEnabled(enabled) {
+    try {
+      localStorage.setItem("staszek_audio", enabled ? "1" : "0");
+    } catch {}
+  }
+
+  function ensureAudioEl() {
+    if (state.audio.el) return state.audio.el;
+    const a = new Audio();
+    a.loop = true;
+    a.preload = "auto";
+    a.volume = 0.65;
+    state.audio.el = a;
+    return a;
+  }
+
+  function trackForRoute(routeId) {
+    const map = {
+      start: "audio/audio-mian-page.mp3",
+      aktualnosci: "audio/audio-aktualnosci.mp3",
+      plakaty: "audio/audio-plakaty.mp3",
+      pomysly: "audio/audio-mian-page.mp3",
+    };
+    return map[routeId] || map.start;
+  }
+
+  function setupAudioUnlockOnce() {
+    if (!state.audio.enabled) return;
+    if (state.audio.unlocked) return;
+
+    const handler = () => {
+      state.audio.unlocked = true;
+      syncAudioWithRoute(state.route || "start");
+    };
+
+    document.addEventListener("pointerdown", handler, { once: true, capture: true });
+    document.addEventListener("keydown", handler, { once: true, capture: true });
+  }
+
+  function syncAudioWithRoute(routeId) {
+    const a = ensureAudioEl();
+    const desiredSrc = trackForRoute(routeId);
+
+    if (!state.audio.enabled) {
+      try {
+        a.pause();
+        a.currentTime = 0;
+      } catch {}
+      state.audio.src = "";
+      return;
+    }
+
+    if (state.audio.src !== desiredSrc) {
+      state.audio.src = desiredSrc;
+      a.src = desiredSrc;
+      try {
+        a.currentTime = 0;
+      } catch {}
+    }
+
+    const p = a.play();
+    if (p && typeof p.then === "function") {
+      p.then(
+        () => {
+          state.audio.unlocked = true;
+        },
+        () => {
+          state.audio.unlocked = false;
+          setupAudioUnlockOnce();
+        }
+      );
+    }
   }
 
   function el(tag, attrs = {}, children = []) {
@@ -232,6 +321,31 @@
       nav.appendChild(a);
     }
 
+    const audioBtn = el(
+      "button",
+      {
+        class: "icon-btn",
+        type: "button",
+        title: state.audio.enabled
+          ? "Wycisz / wyłącz dźwięk"
+          : "Włącz dźwięk",
+        onClick: () => {
+          state.audio.enabled = !state.audio.enabled;
+          saveAudioEnabled(state.audio.enabled);
+          syncAudioWithRoute(state.route || "start");
+          render();
+        },
+      },
+      [
+        el(
+          "span",
+          { class: "btn-full" },
+          state.audio.enabled ? "Dźwięk: ON" : "Dźwięk: OFF"
+        ),
+        el("span", { class: "btn-short", "aria-hidden": "true" }, "Dźw."),
+      ]
+    );
+
     const creditLink = el(
       "a",
       {
@@ -248,7 +362,7 @@
       ]
     );
 
-    const tools = el("div", { class: "tools" }, [creditLink]);
+    const tools = el("div", { class: "tools" }, [audioBtn, creditLink]);
 
     const inner = el("div", { class: "topbar-inner" }, [brand, nav, tools]);
     return el("header", { class: "topbar" }, inner);
@@ -1070,6 +1184,8 @@
     ensureModals();
     reveal(content);
 
+    syncAudioWithRoute(id);
+
     if (id !== prevRoute) {
       try {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -1141,6 +1257,9 @@
       );
       return;
     }
+
+    state.audio.enabled = loadAudioEnabled();
+    setupAudioUnlockOnce();
 
     initBackground();
     initShortcuts();
