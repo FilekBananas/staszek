@@ -11,7 +11,9 @@ set -euo pipefail
 GITHUB_USER="${GITHUB_USER:-FilekBananas}"
 REPO_NAME="${REPO_NAME:-staszek}"
 REMOTE_NAME="${REMOTE_NAME:-origin}"
-REMOTE_URL="${REMOTE_URL:-https://github.com/${GITHUB_USER}/${REPO_NAME}.git}"
+# Default to SSH (more reliable than HTTPS for some networks/macOS setups).
+# You can still override via: REMOTE_URL=https://github.com/<user>/<repo>.git bash gh.sh
+REMOTE_URL="${REMOTE_URL:-git@github.com:${GITHUB_USER}/${REPO_NAME}.git}"
 BRANCH_MAIN="${BRANCH_MAIN:-main}"
 PAGES_BRANCH="${PAGES_BRANCH:-gh-pages}"
 COMMIT_MSG="${COMMIT_MSG:-deploy}"
