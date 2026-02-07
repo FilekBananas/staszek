@@ -195,7 +195,7 @@ Capisci?????🇮🇹
     "Patryk Niewczas",
     "Nikita Harhots",
     "Maciej Sołowiński",
-    "Alex Dubis",
+    "Alex Dubis (Remix Manager)",
     "Szymon Kaczkowski",
     "Mikołaj Głowacki",
     "Kuba Dyrektor",
