@@ -202,6 +202,19 @@ Capisci?????🇮🇹
     "Paweł Palenik",
   ];
 
+  const staffLinks = {
+    "Adam Rowiński": "https://www.facebook.com/profile.php?id=61567398682653",
+    "Adam Zaleski": "https://www.facebook.com/adqsss",
+    "Borys Pietrewicz": "https://www.facebook.com/profile.php?id=61579357974844",
+    "Kostek Opas": "https://www.facebook.com/kostek.opas.92",
+    "Maksymilian Wysokiński": "https://www.facebook.com/profile.php?id=100080527871606",
+    "Mateusz Dornowski": "https://www.facebook.com/matijos.matijos",
+    "Mikołaj Głowacki": "https://www.facebook.com/miki.glowa",
+    "Paweł Palenik": "https://www.facebook.com/profile.php?id=61577903663868",
+    "Ryszard Karaś": "https://www.facebook.com/profile.php?id=61570875586851",
+    "Szymon Kaczkowski": "https://www.facebook.com/fitmatelindo12",
+  };
+
   const news = [
     {
       id: "post-budzet",
@@ -340,6 +353,7 @@ Stanisław Tomaszewski 1C.`;
     images,
     program,
     staff,
+    staffLinks,
     news,
     cooperationEssay,
   };

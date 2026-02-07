@@ -555,6 +555,7 @@
     const { candidate, images } = window.STASZEK;
     const ig = "https://www.instagram.com/tomaszewski_2026/";
     const creatorUrl = "https://filip.biskupski.site/";
+    const staffLinks = window.STASZEK?.staffLinks || {};
 
     const hero = el("section", { class: "hero reveal" }, [
       el("div", {
@@ -684,6 +685,22 @@
                   role: "listitem",
                   title: "Otwórz stronę Filipa Biskupskiego",
                   "aria-label": "Filip Biskupski (link)",
+                },
+                n
+              );
+            }
+            const fb = staffLinks[n];
+            if (fb) {
+              return el(
+                "a",
+                {
+                  class: "chip chip-link",
+                  href: fb,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  role: "listitem",
+                  title: `Facebook: ${n}`,
+                  "aria-label": `${n} (Facebook)`,
                 },
                 n
               );
