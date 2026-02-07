@@ -674,7 +674,8 @@
           "div",
           { class: "chips", style: { marginTop: "10px" } },
           window.STASZEK.staff.map((n) => {
-            if (n === "Filip Biskupski") {
+            const baseName = String(n).replace(/\s*\([^)]*\)\s*$/, "");
+            if (baseName === "Filip Biskupski") {
               return el(
                 "a",
                 {
@@ -689,7 +690,7 @@
                 n
               );
             }
-            const fb = staffLinks[n];
+            const fb = staffLinks[baseName];
             if (fb) {
               return el(
                 "a",

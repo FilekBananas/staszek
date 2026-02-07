@@ -170,8 +170,8 @@ Capisci?????🇮🇹
   ];
 
   const staff = [
-    "Filip Biskupski",
-    "Oskar Sienkiewicz",
+    "Filip Biskupski (Web Manager)",
+    "Oskar Sienkiewicz (Visual Aesthetics Manager)",
     "Wojciech Kwiatkowski",
     "Łukasz Parda",
     "Kuba Świcarz",
@@ -188,7 +188,7 @@ Capisci?????🇮🇹
     "Przemysław Kamiński",
     "Adam Zaleski",
     "Miron Ławrynowicz",
-    "Mateusz Dornowski",
+    "Mateusz Dornowski (Senator)",
     "Maksymilian Wysokiński",
     "Krzysztof Stachowiak",
     "Piotr Goździk",
