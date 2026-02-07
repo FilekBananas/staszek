@@ -170,7 +170,7 @@ Capisci?????🇮🇹
   ];
 
   const staff = [
-    "Filip Biskupski (Web Manager)",
+    "Filip Biskupski (Webmaster)",
     "Oskar Sienkiewicz (Visual Aesthetics Manager)",
     "Wojciech Kwiatkowski",
     "Łukasz Parda",
