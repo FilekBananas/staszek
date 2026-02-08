@@ -244,6 +244,34 @@ Capisci?????🇮🇹
 #staszekdlastaszica`,
     },
     {
+      id: "post-sts-pogoria",
+      title: "STS Pogoria — propozycja nie do odrzucenia",
+      date: "",
+      image: "zdjęcia/sts-pogonia.png",
+      tags: ["sts", "pogoria", "wyjazdy", "integracja"],
+      body: `Słuchajcie moi compagni. Sprawy zaczynają nabierać tempa🤫🤫
+
+Mamy już ludzi (kadra gotowa).
+Mamy również błogosławieństwo samej Góry (zielone światło od Dyrekcji)🤝
+
+Interes jest już ubity🫶
+
+STS Pogoria. To nie jest zwykła wycieczka szkolna.
+
+To bilet do innego świata.
+
+Płyniemy tam, gdzie życie smakuje najlepiej. Między innymi Monte Carlo, Portofino, Genua.
+Będziemy spacerować tam, gdzie najbogatsi tego świata. Kąpać się na otwartym morzu, skakać z lin do błękitnej wody i wciągać włoskie lody najlepszego sortu.
+
+To przygoda, która zostaje w głowie na całe życie. Wracasz stamtąd inny. Bardziej pewny siebie. Z wizją jak wspaniały może być ten świat i jak dużo jeszcze mamy przed sobą.
+
+To oferta dla tych, którzy chcą od życia czegoś więcej.
+
+Inne życie czeka. To propozycja nie do odrzucenia🇮🇹🇮🇹🍷
+
+#staszekdlastaszica`,
+    },
+    {
       id: "post-program",
       title: "#STASZEK DLA STASZICA — 13 punktów",
       date: "",
