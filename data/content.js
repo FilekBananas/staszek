@@ -171,6 +171,7 @@ Capisci?????🇮🇹
 
   const staff = [
     "Filip Biskupski (Webmaster)",
+    "Mateusz Dornowski (Senator & Chief of Staff)",
     "Oskar Sienkiewicz (Visual Aesthetics Manager)",
     "Wojciech Kwiatkowski",
     "Łukasz Parda",
@@ -188,7 +189,6 @@ Capisci?????🇮🇹
     "Przemysław Kamiński",
     "Adam Zaleski",
     "Miron Ławrynowicz",
-    "Mateusz Dornowski (Senator & Chief of Staff)",
     "Maksymilian Wysokiński",
     "Krzysztof Stachowiak",
     "Piotr Goździk",
