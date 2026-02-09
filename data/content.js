@@ -217,6 +217,17 @@ Capisci?????🇮🇹
 
   const news = [
     {
+      id: "post-video-1",
+      title: "Filmik — STASZEK DLA STASZICA",
+      date: "",
+      video: "video/filmik_staszek_dla_staszica_1.mp4",
+      image: "",
+      tags: ["video", "kampania"],
+      body: `Nowy filmik kampanii.
+
+#staszekdlastaszica`,
+    },
+    {
       id: "post-budzet",
       title: "Budżet uczniowski — propozycja nie do odrzucenia",
       date: "",

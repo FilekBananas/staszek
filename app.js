@@ -334,6 +334,22 @@
     return wrap;
   }
 
+  function makeVideo(src, poster, title) {
+    const wrap = el("div", { class: "video" });
+    const video = el("video", {
+      src,
+      poster: poster || null,
+      preload: "metadata",
+      playsinline: true,
+      controls: true,
+      "aria-label": title || "Wideo",
+    });
+    video.addEventListener("loadeddata", () => wrap.classList.add("is-loaded"));
+    video.addEventListener("error", () => wrap.classList.add("is-loaded"));
+    wrap.appendChild(video);
+    return wrap;
+  }
+
   function reveal(container) {
     const targets = $$(".reveal", container);
     if (!targets.length) return;
@@ -870,7 +886,11 @@
           el("h3", {}, p.title || "Post"),
           el("div", { class: "post-date" }, formatDate(p.date)),
         ]),
-        p.image ? makeImage(p.image, p.title || "Grafika posta") : null,
+        p.video
+          ? makeVideo(p.video, p.image || "", p.title || "Wideo")
+          : p.image
+            ? makeImage(p.image, p.title || "Grafika posta")
+            : null,
         renderRichText(p.body || ""),
         el("div", { class: "meta-row" }, [
           ...tagBadges,
