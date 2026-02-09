@@ -144,7 +144,18 @@
           () => {
             state.audio.started = true;
             state.audio.unlocked = false;
-            setupAudioUnlockOnce();
+
+            a.muted = false;
+            tryPlay().then(
+              () => {
+                state.audio.unlocked = true;
+              },
+              () => {
+                a.muted = true;
+                state.audio.unlocked = false;
+                setupAudioUnlockOnce();
+              }
+            );
           },
           () => {
             state.audio.started = false;

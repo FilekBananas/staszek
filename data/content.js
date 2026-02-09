@@ -188,7 +188,7 @@ Capisci?????🇮🇹
     "Przemysław Kamiński",
     "Adam Zaleski",
     "Miron Ławrynowicz",
-    "Mateusz Dornowski (Senator)",
+    "Mateusz Dornowski (Senator & Chief of Staff)",
     "Maksymilian Wysokiński",
     "Krzysztof Stachowiak",
     "Piotr Goździk",
