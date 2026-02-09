@@ -39,10 +39,10 @@
       const v = localStorage.getItem("staszek_audio");
       if (v === "0") return false;
       if (v === "1") return true;
-      // First visit: default ON and persist the choice.
-      localStorage.setItem("staszek_audio", "1");
+      // First visit: default OFF (muted) and persist the choice.
+      localStorage.setItem("staszek_audio", "0");
     } catch {}
-    return true;
+    return false;
   }
 
   function saveAudioEnabled(enabled) {
