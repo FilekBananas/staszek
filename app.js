@@ -8,13 +8,14 @@
       started: false,
       src: "",
       el: null,
+      suspendedByVideo: false,
     },
     filters: {
       aktualnosci: { search: "", tag: "" },
       pomysly: { search: "", tag: "" },
     },
   };
-  const AUDIO_FEATURE_ENABLED = false;
+  const AUDIO_FEATURE_ENABLED = true;
 
   let renderTimer = 0;
   let restoreFocus = null;
@@ -153,6 +154,61 @@
         );
       }
     );
+  }
+
+  function isAnyVideoPlayingWithSound() {
+    const videos = $$("video");
+    for (const v of videos) {
+      if (v.paused || v.ended) continue;
+      if (v.muted) continue;
+      if (Number(v.volume) === 0) continue;
+      return true;
+    }
+    return false;
+  }
+
+  function pauseBgAudioForVideo() {
+    if (!AUDIO_FEATURE_ENABLED) return;
+    if (!state.audio.enabled) return;
+    const a = state.audio.el;
+    if (!a) return;
+    try {
+      a.pause();
+    } catch {}
+    state.audio.suspendedByVideo = true;
+  }
+
+  function maybeResumeBgAudioAfterVideo() {
+    if (!AUDIO_FEATURE_ENABLED) return;
+    if (!state.audio.enabled) return;
+    if (!state.audio.suspendedByVideo) return;
+    if (isAnyVideoPlayingWithSound()) return;
+
+    state.audio.suspendedByVideo = false;
+    const a = state.audio.el;
+    if (!a) return;
+    try {
+      const p = a.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch {}
+  }
+
+  function enforceVideoDucking() {
+    if (!AUDIO_FEATURE_ENABLED) return;
+    if (isAnyVideoPlayingWithSound()) pauseBgAudioForVideo();
+    else maybeResumeBgAudioAfterVideo();
+  }
+
+  let videoDuckingSetup = false;
+  function setupVideoDucking() {
+    if (videoDuckingSetup) return;
+    videoDuckingSetup = true;
+
+    const handler = () => enforceVideoDucking();
+    document.addEventListener("playing", handler, true);
+    document.addEventListener("pause", handler, true);
+    document.addEventListener("ended", handler, true);
+    document.addEventListener("volumechange", handler, true);
   }
 
   function el(tag, attrs = {}, children = []) {
@@ -475,6 +531,7 @@
             state.audio.enabled = !state.audio.enabled;
             saveAudioEnabled(state.audio.enabled);
             syncAudioWithRoute(state.route || "start");
+            enforceVideoDucking();
             refreshAudioBtn();
           },
         },
@@ -1357,7 +1414,10 @@
     ensureModals();
     reveal(content);
 
-    if (AUDIO_FEATURE_ENABLED) syncAudioWithRoute(id);
+    if (AUDIO_FEATURE_ENABLED) {
+      syncAudioWithRoute(id);
+      enforceVideoDucking();
+    }
 
     if (id !== prevRoute) {
       try {
@@ -1434,6 +1494,7 @@
     if (AUDIO_FEATURE_ENABLED) {
       state.audio.enabled = loadAudioEnabled();
       setupAudioUnlockOnce();
+      setupVideoDucking();
     } else {
       state.audio.enabled = false;
     }
