@@ -20,6 +20,31 @@
         title: "I want you for my army",
         subtitle: "La Familia wzywa",
       },
+      {
+        src: "zdjęcia/głosuj_na_staszka-plakat.jpeg",
+        title: "Głosuj na Staszka",
+        subtitle: "STASZEK DLA STASZICA",
+      },
+      {
+        src: "zdjęcia/plakat-1.jpeg",
+        title: "Plakat 1",
+        subtitle: "STASZEK DLA STASZICA",
+      },
+      {
+        src: "zdjęcia/rzeczy_niemożliwe_robimy_od_ręki-plakat.jpeg",
+        title: "Rzeczy niemożliwe robimy od ręki",
+        subtitle: "STASZEK DLA STASZICA",
+      },
+      {
+        src: "zdjęcia/pracujemy_w_trójkę-budujemy_za12-tu-plakat.jpeg",
+        title: "Pracujemy w trójkę",
+        subtitle: "Budujemy za 12",
+      },
+      {
+        src: "zdjęcia/bądź_jak_pingwin-plakat.jpeg",
+        title: "Bądź jak pingwin",
+        subtitle: "STASZEK DLA STASZICA",
+      },
     ],
   };
 
