@@ -27,7 +27,7 @@
       },
       {
         src: "zdjęcia/plakat-1.jpeg",
-        title: "Plakat 1",
+        title: "Staszek na ratunek",
         subtitle: "STASZEK DLA STASZICA",
       },
       {
