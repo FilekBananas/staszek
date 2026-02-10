@@ -682,23 +682,24 @@ body {
 }
 
 .poster-grid {
-  columns: 3;
-  column-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .poster-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 860px) {
   .poster-grid {
-    columns: 1;
+    grid-template-columns: 1fr;
   }
 }
 
 .poster {
-  display: inline-block;
-  width: 100%;
-  margin: 0 0 12px;
-  break-inside: avoid;
-  page-break-inside: avoid;
-  -webkit-column-break-inside: avoid;
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.16);
@@ -731,6 +732,31 @@ body {
   backdrop-filter: blur(10px);
   font-size: 13px;
   color: rgba(255, 255, 255, 0.92);
+}
+
+.poster-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poster-meta-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.poster-meta-row .badge {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poster-nav-row {
+  display: flex;
+  justify-content: center;
 }
 
 .poster-nav {

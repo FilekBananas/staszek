@@ -1232,18 +1232,16 @@
       "→"
     );
     const navGroup = el("div", { class: "poster-nav" }, [prevBtn, nextBtn]);
-    body.appendChild(
-      el("div", { class: "meta-row", style: { marginTop: "10px" } }, [
-        el("span", { class: "badge" }, p.subtitle || ""),
-        el("span", { style: { flex: "1" } }),
-        el(
-          "a",
-          { class: "btn btn-primary", href: p.src, download: "" },
-          "Pobierz"
-        ),
-        navGroup,
-      ])
-    );
+    const metaRow = el("div", { class: "poster-meta-row" }, [
+      el("span", { class: "badge", title: p.subtitle || "" }, p.subtitle || ""),
+      el(
+        "a",
+        { class: "btn btn-primary", href: p.src, download: "" },
+        "Pobierz"
+      ),
+    ]);
+    const navRow = el("div", { class: "poster-nav-row" }, navGroup);
+    body.appendChild(el("div", { class: "poster-actions" }, [metaRow, navRow]));
 
     modal.setAttribute("aria-hidden", "false");
     modal.focus();
