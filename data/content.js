@@ -31,17 +31,17 @@
         subtitle: "STASZEK DLA STASZICA",
       },
       {
-        src: "zdjęcia/rzeczy_niemożliwe_robimy_od_ręki-plakat.jpeg",
+        src: "zdjęcia/rzeczy_niemozliwe_robimy_od_reki-plakat.jpeg",
         title: "Rzeczy niemożliwe robimy od ręki",
         subtitle: "STASZEK DLA STASZICA",
       },
       {
-        src: "zdjęcia/pracujemy_w_trójkę-budujemy_za12-tu-plakat.jpeg",
+        src: "zdjęcia/pracujemy_w_trojke-budujemy_za12-tu-plakat.jpeg",
         title: "Pracujemy w trójkę",
         subtitle: "Budujemy za 12",
       },
       {
-        src: "zdjęcia/bądź_jak_pingwin-plakat.jpeg",
+        src: "zdjęcia/badz_jak_pingwin-plakat.jpeg",
         title: "Bądź jak pingwin",
         subtitle: "STASZEK DLA STASZICA",
       },
