@@ -1211,6 +1211,27 @@
     title.textContent = p.title || "Plakat";
     body.textContent = "";
     body.appendChild(makeImage(p.src, p.title || "Plakat"));
+    const prevBtn = el(
+      "button",
+      {
+        class: "btn",
+        type: "button",
+        onClick: () => openPoster(state.posterIndex - 1),
+        disabled: state.posterIndex === 0,
+      },
+      "←"
+    );
+    const nextBtn = el(
+      "button",
+      {
+        class: "btn",
+        type: "button",
+        onClick: () => openPoster(state.posterIndex + 1),
+        disabled: state.posterIndex === posters.length - 1,
+      },
+      "→"
+    );
+    const navGroup = el("div", { class: "poster-nav" }, [prevBtn, nextBtn]);
     body.appendChild(
       el("div", { class: "meta-row", style: { marginTop: "10px" } }, [
         el("span", { class: "badge" }, p.subtitle || ""),
@@ -1220,26 +1241,7 @@
           { class: "btn btn-primary", href: p.src, download: "" },
           "Pobierz"
         ),
-        el(
-          "button",
-          {
-            class: "btn",
-            type: "button",
-            onClick: () => openPoster(state.posterIndex - 1),
-            disabled: state.posterIndex === 0,
-          },
-          "←"
-        ),
-        el(
-          "button",
-          {
-            class: "btn",
-            type: "button",
-            onClick: () => openPoster(state.posterIndex + 1),
-            disabled: state.posterIndex === posters.length - 1,
-          },
-          "→"
-        ),
+        navGroup,
       ])
     );
 

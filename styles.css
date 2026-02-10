@@ -733,6 +733,13 @@ body {
   color: rgba(255, 255, 255, 0.92);
 }
 
+.poster-nav {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
 .modal {
   position: fixed;
   inset: 0;
