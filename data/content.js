@@ -242,6 +242,47 @@ Capisci?????🇮🇹
 
   const news = [
     {
+      id: "post-analiza-wykluczenie",
+      title:
+        "Stanisław Tomaszewski bezpodstawnie wykluczony z wyborów – analiza prawna decyzji komisji",
+      date: "",
+      image: "",
+      tags: ["wybory", "prawo", "analiza"],
+      body: `Stanisław Tomaszewski został wykluczony z wyborów na Prezydenta Samorządu Uczniowskiego decyzją komisji regulaminowej oraz komitetu wyborczego. Podstawą tej decyzji był zarzut, że jego plakaty wyborcze rzekomo „promują ideologię komunistyczną”. Zarzut ten jest nie tylko nadinterpretacją materiałów o charakterze satyrycznym, lecz również stanowi poważne oskarżenie godzące w dobre imię kandydata.
+
+Plakaty miały charakter żartobliwy i satyryczny. W polskim systemie prawnym satyra stanowi dopuszczalną formę ekspresji i mieści się w granicach wolności słowa gwarantowanej konstytucyjnie.
+
+Zgodnie z:
+
+Art. 54 ust. 1 Konstytucji Rzeczypospolitej Polskiej
+„Każdemu zapewnia się wolność wyrażania swoich poglądów oraz pozyskiwania i rozpowszechniania informacji.”
+
+W orzecznictwie sądów powszechnych oraz Trybunału Konstytucyjnego przyjmuje się, że satyra i forma żartu są chronione jako element debaty publicznej, o ile nie naruszają w sposób oczywisty praw innych osób. W tym przypadku plakaty nie propagowały ideologii totalitarnej, lecz wykorzystywały stylistykę satyryczną.
+
+Co więcej, komisja regulaminowa przypisała Stanisławowi działania, które mogłyby w świetle prawa karnego zostać uznane za propagowanie totalitaryzmu. Tego rodzaju zarzut jest wyjątkowo poważny i nie może być stawiany przez organ uczniowski, który nie posiada kompetencji sądowniczych ani uprawnień do dokonywania kwalifikacji czynów jako przestępstw.
+
+Należy podkreślić, że:
+
+Art. 212 §1 Kodeksu karnego (ustawa z dnia 6 czerwca 1997 r.)
+„Kto pomawia inną osobę (…) o takie postępowanie lub właściwości, które mogą ją poniżyć w opinii publiczznej lub narazić na utratę zaufania potrzebnego dla danego stanowiska (…) podlega grzywnie albo karze ograniczenia wolności.”
+
+Publiczne przypisanie komuś propagowania ideologii totalitarnej spełnia przesłanki pomówienia, gdy nie zostało udowodnione i opiera się na subiektywnej interpretacji.
+
+Dodatkowo polskie prawo cywilne chroni godność i dobre imię jako dobra osobiste:
+
+Art. 23 Kodeksu cywilnego (ustawa z dnia 23 kwietnia 1964 r.)
+„Dobra osobiste człowieka, jak w szczególności cześć, dobre imię, godność (…) pozostają pod ochroną prawa cywilnego.”
+
+Art. 24 §1 Kodeksu cywilnego
+„Ten, czyje dobro osobiste zostaje zagrożone cudzym działaniem, może żądać zaniechania tego działania (…) a także usunięcia jego skutków.”
+
+Decyzja komisji nie tylko przekracza kompetencje organu uczniowskiego, ale również opiera się na interpretacji prawa karnego, do której samorząd nie jest uprawniony. Organ szkolny może oceniać zgodność działań uczniów ze statutem szkoły, lecz nie może orzekać o rzekomym propagowaniu ustroju totalitarnego — jest to domena sądów.
+
+Kara w postaci wykluczenia z wyborów jest w tej sytuacji nieproporcjonalna do zarzucanego czynu i oparta na błędnej kwalifikacji prawnej. Ocenianie satyry jako przestępstwa prowadzi do naruszenia zasad wolności wypowiedzi oraz godności osobistej.
+
+W świetle powyższego decyzja powinna zostać ponownie przeanalizowana przez Dyrekcję szkoły, a jej wykonanie wstrzymane do czasu wyjaśnienia wątpliwości prawnych.`,
+    },
+    {
       id: "post-paczki-quiz",
       title: "Test wiedzy o pączkach — Giovedì Grasso",
       date: "",
