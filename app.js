@@ -34,6 +34,7 @@
     { id: "aktualnosci", label: "Aktualności", hash: "#/aktualnosci" },
     { id: "plakaty", label: "Plakaty", hash: "#/plakaty" },
     { id: "pomysly", label: "Pomysły", hash: "#/pomysly" },
+    { id: "kontakt", label: "Kontakt", hash: "#/kontakt" },
   ];
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -41,6 +42,7 @@
 
   const COUNTER_HOST = "licznik-794170040235.europe-central2.run.app";
   const COUNTER_BASE = `${location.protocol === "http:" ? "http" : "https"}://${COUNTER_HOST}`;
+  const COUNTER_API_KEY = "jDIw(@#wdF2r4";
 
   const COUNTER_SITE_VIEWS = "staszek-views";
   const COUNTER_SITE_VISITORS = "staszek-visitors";
@@ -107,7 +109,10 @@
   }
 
   function counterUrl(path) {
-    return `${COUNTER_BASE}${path}`;
+    const url = `${COUNTER_BASE}${path}`;
+    if (!COUNTER_API_KEY) return url;
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}key=${encodeURIComponent(COUNTER_API_KEY)}`;
   }
 
   function parseCounterValue(text) {
@@ -2035,6 +2040,125 @@
     return el("div", {}, [title, lead, grid]);
   }
 
+  function pageKontakt() {
+    const ig = "https://www.instagram.com/tomaszewski_2026/";
+    const title = el("h2", { class: "page-title reveal" }, "Kontakt");
+    const lead = el(
+      "p",
+      { class: "page-lead reveal" },
+      "Masz sprawę, pomysł albo pytanie? Wyślij wiadomość."
+    );
+
+    const CONTACT_KEY = "pv-mesege-staszek";
+    const SUBJECT_MAX = 80;
+    const BODY_MAX = 520;
+    const cooldownKey = "staszek_contact_last";
+
+    const notice = el(
+      "div",
+      { class: "thread-notice" },
+      [
+        "Alternatywnie: Instagram ",
+        el("a", { href: ig, target: "_blank", rel: "noopener noreferrer" }, "@tomaszewski_2026"),
+        ". Nie podawaj danych wrażliwych.",
+      ]
+    );
+
+    const subjectInput = el("input", {
+      class: "thread-input",
+      placeholder: "Temat",
+      maxLength: String(SUBJECT_MAX),
+      "aria-label": "Temat wiadomości",
+      autocomplete: "off",
+    });
+
+    const bodyInput = el("textarea", {
+      class: "thread-input thread-textarea",
+      placeholder: "Treść",
+      rows: "6",
+      maxLength: String(BODY_MAX),
+      "aria-label": "Treść wiadomości",
+    });
+
+    const statusEl = el("div", { class: "thread-status", role: "status" }, "");
+    const sendBtn = el("button", { class: "btn btn-primary", type: "submit" }, "Wyślij");
+
+    const form = el(
+      "form",
+      {
+        class: "card reveal thread-form",
+        onSubmit: async (e) => {
+          e.preventDefault();
+          const subject = String(subjectInput.value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, SUBJECT_MAX);
+          const body = String(bodyInput.value || "")
+            .replace(/\r\n/g, "\n")
+            .trim()
+            .slice(0, BODY_MAX);
+
+          if (!subject) {
+            toast("Uzupełnij temat.");
+            return;
+          }
+          if (!body) {
+            toast("Uzupełnij treść.");
+            return;
+          }
+
+          try {
+            const last = Number(localStorage.getItem(cooldownKey) || "0") || 0;
+            if (Date.now() - last < FORUM_COOLDOWN_MS) {
+              toast("Poczekaj chwilę przed wysłaniem kolejnej wiadomości.");
+              return;
+            }
+          } catch {}
+
+          statusEl.dataset.kind = "";
+          statusEl.textContent = "Wysyłanie…";
+          sendBtn.disabled = true;
+
+          const element = `{${subject} ////// ${body}}`;
+          const ok = await basicDbAdd(CONTACT_KEY, element);
+
+          sendBtn.disabled = false;
+          if (!ok) {
+            statusEl.dataset.kind = "err";
+            statusEl.textContent = "Nie udało się wysłać. Spróbuj ponownie.";
+            return;
+          }
+
+          try {
+            localStorage.setItem(cooldownKey, String(Date.now()));
+          } catch {}
+
+          subjectInput.value = "";
+          bodyInput.value = "";
+          statusEl.dataset.kind = "ok";
+          statusEl.textContent = "Wysłano.";
+          setTimeout(() => {
+            if (!statusEl.isConnected) return;
+            statusEl.textContent = "";
+            statusEl.dataset.kind = "";
+          }, 2200);
+        },
+      },
+      [
+        notice,
+        subjectInput,
+        bodyInput,
+        el("div", { class: "thread-actions" }, [
+          sendBtn,
+          el("div", { class: "thread-hint" }, `Max ${SUBJECT_MAX} / ${BODY_MAX} znaków.`),
+        ]),
+        statusEl,
+      ]
+    );
+
+    return el("div", {}, [title, lead, form]);
+  }
+
   function buildModal(id, titleId, bodyId, onClose) {
     const closeBtn = el(
       "button",
@@ -2161,6 +2285,7 @@
     if (id === "aktualnosci") page = pageAktualnosci();
     else if (id === "plakaty") page = pagePlakaty();
     else if (id === "pomysly") page = pagePomysly();
+    else if (id === "kontakt") page = pageKontakt();
     else page = pageStart();
 
     content.appendChild(page);
@@ -2191,6 +2316,7 @@
       aktualnosci: "Aktualności • STASZEK DLA STASZICA",
       plakaty: "Plakaty • STASZEK DLA STASZICA",
       pomysly: "Pomysły • STASZEK DLA STASZICA",
+      kontakt: "Kontakt • STASZEK DLA STASZICA",
     }[id] || "STASZEK DLA STASZICA";
 
     if (id === "pomysly" && query) {
