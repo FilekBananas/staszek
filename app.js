@@ -48,6 +48,7 @@
   const COUNTER_SITE_VIEWS = "staszek-views";
   const COUNTER_SITE_VISITORS = "staszek-visitors";
   const COUNTER_SITE_VOTE = "staszek-vote";
+  const MIN_PUBLIC_VOTE_COUNT = 20;
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
@@ -243,7 +244,14 @@
 
     setAnimatedNumber($("#statViewsBox"), state.stats.views);
     setAnimatedNumber($("#statVisitorsBox"), state.stats.visitors);
-    setAnimatedNumber($("#statVoteBox"), state.stats.vote);
+
+    const voteCard = $("#statVoteCard");
+    const showVote =
+      typeof state.stats.vote === "number" &&
+      Number.isFinite(state.stats.vote) &&
+      state.stats.vote >= MIN_PUBLIC_VOTE_COUNT;
+    if (voteCard) voteCard.hidden = !showVote;
+    if (showVote) setAnimatedNumber($("#statVoteBox"), state.stats.vote);
   }
 
   let statsInitialized = false;
@@ -690,6 +698,11 @@
 
       const v = state.likes.counts.get(counterName);
       if (typeof v === "number") countEl.textContent = formatNumber(v);
+
+      const hideVoteCount =
+        counterName === COUNTER_SITE_VOTE &&
+        !(typeof v === "number" && Number.isFinite(v) && v >= MIN_PUBLIC_VOTE_COUNT);
+      countEl.hidden = hideVoteCount;
     }
     refresh();
     return btn;
@@ -1462,7 +1475,7 @@
         ]),
         el("div", { class: "stat-label" }, "Wyświetlenia strony"),
       ]),
-      el("div", { class: "card reveal stat" }, [
+      el("div", { class: "card reveal stat", id: "statVoteCard", hidden: true }, [
         el("div", { class: "stat-value" }, [
           el("span", { class: "stat-number", id: "statVoteBox", "data-loading": "1" }, "…"),
         ]),
