@@ -53,6 +53,7 @@
   const COUNTER_SITE_VOTE = "staszek-vote";
   const COUNTER_SITE_EXONERATE = "staszek-uniewinnic";
   const MIN_PUBLIC_VOTE_COUNT = 20;
+  const VIEW_COOLDOWN_MS = 2 * 60 * 1000;
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
@@ -399,24 +400,58 @@
       counted = true;
       cleanup();
 
-      addCounter(COUNTER_SITE_VIEWS, 1).then((v) => {
-        if (typeof v === "number") {
-          state.stats.views = v;
-          updateStatsUI();
-        }
-      });
+      let canCountView = true;
+      try {
+        if (sessionStorage.getItem("staszek_view_session") === "1") canCountView = false;
+      } catch {}
+      try {
+        const last = Number(localStorage.getItem("staszek_view_last") || "0") || 0;
+        if (last && Date.now() - last < VIEW_COOLDOWN_MS) canCountView = false;
+      } catch {}
 
-      const first = !hasCookie(seenKey);
-      if (first) writeCookie(seenKey, "1", 400);
-      const pv = first
-        ? addCounter(COUNTER_SITE_VISITORS, 1)
-        : getCounter(COUNTER_SITE_VISITORS);
-      pv.then((v) => {
-        if (typeof v === "number") {
-          state.stats.visitors = v;
-          updateStatsUI();
-        }
-      });
+      if (canCountView) {
+        try {
+          sessionStorage.setItem("staszek_view_session", "1");
+        } catch {}
+        try {
+          localStorage.setItem("staszek_view_last", String(Date.now()));
+        } catch {}
+
+        addCounter(COUNTER_SITE_VIEWS, 1).then((v) => {
+          if (typeof v === "number") {
+            state.stats.views = v;
+            updateStatsUI();
+          }
+        });
+      } else {
+        getCounter(COUNTER_SITE_VIEWS).then((v) => {
+          if (typeof v === "number") {
+            state.stats.views = v;
+            updateStatsUI();
+          }
+        });
+      }
+
+      if (canCountView) {
+        const first = !hasCookie(seenKey);
+        if (first) writeCookie(seenKey, "1", 400);
+        const pv = first
+          ? addCounter(COUNTER_SITE_VISITORS, 1)
+          : getCounter(COUNTER_SITE_VISITORS);
+        pv.then((v) => {
+          if (typeof v === "number") {
+            state.stats.visitors = v;
+            updateStatsUI();
+          }
+        });
+      } else {
+        getCounter(COUNTER_SITE_VISITORS).then((v) => {
+          if (typeof v === "number") {
+            state.stats.visitors = v;
+            updateStatsUI();
+          }
+        });
+      }
     }
 
     document.addEventListener("visibilitychange", onVisibility);
