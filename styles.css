@@ -871,6 +871,24 @@ body {
   justify-content: space-between;
 }
 
+.announcement {
+  margin-top: 0;
+}
+
+.announcement-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.like-appeal {
+  flex: 1 1 260px;
+  justify-content: space-between;
+}
+
 .thread {
   margin-top: 12px;
 }

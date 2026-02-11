@@ -51,6 +51,7 @@
   const COUNTER_SITE_VIEWS = "staszek-views";
   const COUNTER_SITE_VISITORS = "staszek-visitors";
   const COUNTER_SITE_VOTE = "staszek-vote";
+  const COUNTER_SITE_EXONERATE = "staszek-uniewinnic";
   const MIN_PUBLIC_VOTE_COUNT = 20;
 
   function clamp(n, min, max) {
@@ -1552,6 +1553,36 @@
     const creatorUrl = "https://filip.biskupski.site/";
     const staffLinks = window.STASZEK?.staffLinks || {};
 
+    const banner = el("section", { class: "card reveal announcement" }, [
+      el("div", { class: "announcement-head" }, [
+        el("span", { class: "badge warn" }, "WAŻNE"),
+        el("strong", {}, "Wykluczenie z wyborów — apel"),
+      ]),
+      el(
+        "p",
+        {},
+        "Jeśli popierasz apel o przywrócenie Stanisława do wyborów, kliknij poniżej:"
+      ),
+      el("div", { class: "meta-row" }, [
+        buildLikeControl({
+          likeKey: "like:uniewinnic",
+          counterName: COUNTER_SITE_EXONERATE,
+          label: "Uniewinnić Stanisława",
+          className: "btn btn-primary like-btn like-appeal",
+          title: "Uniewinnić Stanisława",
+        }),
+        el(
+          "a",
+          {
+            class: "btn",
+            href: "#/aktualnosci?post=post-analiza-wykluczenie",
+            title: "Przejdź do analizy prawnej w Aktualnościach",
+          },
+          "Czytaj analizę"
+        ),
+      ]),
+    ]);
+
     const hero = el("section", { class: "hero reveal" }, [
       el("div", {
         class: "hero-media",
@@ -1756,6 +1787,7 @@
     ]);
 
     return el("div", {}, [
+      banner,
       hero,
       statsBoxes,
       quick,
