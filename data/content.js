@@ -242,6 +242,38 @@ Capisci?????🇮🇹
 
   const news = [
     {
+      id: "post-paczki-quiz",
+      title: "Test wiedzy o pączkach — Giovedì Grasso",
+      date: "",
+      tags: ["quiz", "pączki", "tłusty czwartek"],
+      body: `Buongiorno, moi drodzy amici🫶
+
+W czwartek świętujemy Giovedì Grasso. Z tej okazji organizujemy mały quiz.
+
+Szukajcie pytań na naszym story w czwartek o: 9:00, 9:55, 10:50, 11:45, 12:40 i 12:50.
+
+Sprawa wygląda tak: macie 10 minut na wysłanie odpowiedzi i waszych imion. Kto pierwszy, ten lepszy. Dostaniecie od nas potwierdzenie czy się udało 😉
+
+10 najszybszych zgarnia pączka. Za darmo🇮🇹
+
+Odbiór towaru na przerwie po 6. albo 7. lekcji (dla tych którzy wychodzą wcześniej już po 5.).
+Wiem, że mnie nie zawiedziecie.
+Ciao🇮🇹🇮🇹
+Wasz kandydat
+Stanisław Tomaszewski🫶🫶
+
+Inspiracja @kornel.2025 ❤️`,
+    },
+    {
+      id: "post-video-2",
+      title: "Filmik #2 — STASZEK DLA STASZICA",
+      date: "",
+      video: "video/film_wyborczy_2.mp4",
+      image: "",
+      tags: ["video", "kampania"],
+      body: `#staszekdlastaszica`,
+    },
+    {
       id: "post-video-1",
       title: "Filmik — STASZEK DLA STASZICA",
       date: "",
