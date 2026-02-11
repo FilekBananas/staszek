@@ -1430,7 +1430,7 @@
   }
 
   function buildTopbar() {
-    const creatorUrl = "https://filip.biskupski.site/";
+    const creatorUrl = "https://filip.biskupski.site/?from=staszic-wybory";
     const brand = el(
       "div",
       {
@@ -1530,7 +1530,7 @@
   function buildFooter() {
     const candidate = window.STASZEK?.candidate;
     const ig = "https://www.instagram.com/tomaszewski_2026/";
-    const creatorUrl = "https://filip.biskupski.site/";
+    const creatorUrl = "https://filip.biskupski.site/?from=staszic-wybory";
     const foot = el("footer", { class: "footer" }, [
       el(
         "div",
@@ -1588,7 +1588,7 @@
   function pageStart() {
     const { candidate, images } = window.STASZEK;
     const ig = "https://www.instagram.com/tomaszewski_2026/";
-    const creatorUrl = "https://filip.biskupski.site/";
+    const creatorUrl = "https://filip.biskupski.site/?from=staszic-wybory";
     const staffLinks = window.STASZEK?.staffLinks || {};
     const analysisPost = APPEAL_ARTICLE_FEATURE_ENABLED
       ? (window.STASZEK?.news || []).find((p) => p && p.id === "post-analiza-wykluczenie")
