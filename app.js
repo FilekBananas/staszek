@@ -7,6 +7,9 @@
       visitors: null,
       vote: null,
     },
+    ui: {
+      statsBoxesActivated: false,
+    },
     likes: {
       set: new Set(),
       pending: new Set(),
@@ -242,6 +245,8 @@
     if (badgeViews) badgeViews.textContent = `Wyświetlenia: ${viewsText}`;
     if (badgeVisitors) badgeVisitors.textContent = `Osoby: ${visitorsText}`;
 
+    if (!state.ui.statsBoxesActivated) return;
+
     setAnimatedNumber($("#statViewsBox"), state.stats.views);
     setAnimatedNumber($("#statVisitorsBox"), state.stats.visitors);
 
@@ -254,52 +259,184 @@
     if (showVote) setAnimatedNumber($("#statVoteBox"), state.stats.vote);
   }
 
-  let statsInitialized = false;
-  function initSiteStats() {
-    if (statsInitialized) return;
-    statsInitialized = true;
+  function setupLazyStatsBoxes(section) {
+    if (!section) return;
+    if (state.ui.statsBoxesActivated) return;
 
-    addCounter(COUNTER_SITE_VIEWS, 1).then((v) => {
+    if (!("IntersectionObserver" in window)) {
+      state.ui.statsBoxesActivated = true;
+      updateStatsUI();
+      return;
+    }
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          obs.disconnect();
+          state.ui.statsBoxesActivated = true;
+          updateStatsUI();
+          break;
+        }
+      },
+      { threshold: 0.24, rootMargin: "0px 0px -12% 0px" }
+    );
+    obs.observe(section);
+  }
+
+  function isProbablyBot() {
+    const ua = String(navigator.userAgent || "");
+    const low = ua.toLowerCase();
+
+    try {
+      if (navigator.webdriver) return true;
+    } catch {}
+
+    if (low.includes("headlesschrome") || low.includes("lighthouse")) return true;
+
+    const tokens = [
+      "bot",
+      "crawler",
+      "spider",
+      "crawl",
+      "slurp",
+      "duckduckbot",
+      "bingbot",
+      "yandex",
+      "baiduspider",
+      "sogou",
+      "exabot",
+      "facebookexternalhit",
+      "facebot",
+      "twitterbot",
+      "linkedinbot",
+      "slackbot",
+      "discordbot",
+      "telegrambot",
+      "whatsapp",
+      "pinterest",
+      "applebot",
+      "gptbot",
+      "ccbot",
+      "claudebot",
+      "bytespider",
+      "perplexitybot",
+      "semrush",
+      "ahrefs",
+      "mj12bot",
+      "python-requests",
+      "okhttp",
+      "java/",
+    ];
+    for (const t of tokens) {
+      if (low.includes(t)) return true;
+    }
+    return false;
+  }
+
+  function isPageVisible() {
+    if (typeof document.visibilityState === "string") return document.visibilityState === "visible";
+    if (typeof document.hidden === "boolean") return !document.hidden;
+    return true;
+  }
+
+  function hydrateSiteStats() {
+    getCounter(COUNTER_SITE_VIEWS).then((v) => {
       if (typeof v === "number") {
         state.stats.views = v;
         updateStatsUI();
-        return;
       }
-      getCounter(COUNTER_SITE_VIEWS).then((v2) => {
-        if (typeof v2 === "number") {
-          state.stats.views = v2;
-          updateStatsUI();
-        }
-      });
     });
-
-    const seenKey = "staszek_seen";
-    const first = !hasCookie(seenKey);
-    if (first) writeCookie(seenKey, "1", 400);
-
-    const p = first
-      ? addCounter(COUNTER_SITE_VISITORS, 1)
-      : getCounter(COUNTER_SITE_VISITORS);
-    p.then((v) => {
+    getCounter(COUNTER_SITE_VISITORS).then((v) => {
       if (typeof v === "number") {
         state.stats.visitors = v;
         updateStatsUI();
-        return;
       }
-      getCounter(COUNTER_SITE_VISITORS).then((v2) => {
-        if (typeof v2 === "number") {
-          state.stats.visitors = v2;
-          updateStatsUI();
-        }
-      });
     });
-
     getCounter(COUNTER_SITE_VOTE).then((v) => {
       if (typeof v === "number") {
         state.stats.vote = v;
         updateStatsUI();
       }
     });
+  }
+
+  let statsInitialized = false;
+  function initSiteStats() {
+    if (statsInitialized) return;
+    statsInitialized = true;
+
+    // Always show current numbers (even if we decide not to count this visit).
+    hydrateSiteStats();
+
+    const { id } = parseRoute();
+    if (id === "pv-wiadomosci") return;
+    if (isProbablyBot()) return;
+
+    let counted = false;
+    let timer = 0;
+    const seenKey = "staszek_seen";
+
+    const onInteract = () => doCount();
+    const onVisibility = () => {
+      if (isPageVisible()) doCount();
+    };
+
+    function cleanup() {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pointerdown", onInteract, { capture: true });
+      window.removeEventListener("keydown", onInteract, { capture: true });
+      window.removeEventListener("scroll", onInteract, { capture: true });
+      window.removeEventListener("touchstart", onInteract, { capture: true });
+      if (timer) window.clearTimeout(timer);
+      timer = 0;
+    }
+
+    function doCount() {
+      if (counted) return;
+      if (!isPageVisible()) return;
+      counted = true;
+      cleanup();
+
+      addCounter(COUNTER_SITE_VIEWS, 1).then((v) => {
+        if (typeof v === "number") {
+          state.stats.views = v;
+          updateStatsUI();
+        }
+      });
+
+      const first = !hasCookie(seenKey);
+      if (first) writeCookie(seenKey, "1", 400);
+      const pv = first
+        ? addCounter(COUNTER_SITE_VISITORS, 1)
+        : getCounter(COUNTER_SITE_VISITORS);
+      pv.then((v) => {
+        if (typeof v === "number") {
+          state.stats.visitors = v;
+          updateStatsUI();
+        }
+      });
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pointerdown", onInteract, {
+      passive: true,
+      once: true,
+      capture: true,
+    });
+    window.addEventListener("keydown", onInteract, {
+      passive: true,
+      once: true,
+      capture: true,
+    });
+    window.addEventListener("scroll", onInteract, { passive: true, once: true, capture: true });
+    window.addEventListener("touchstart", onInteract, {
+      passive: true,
+      once: true,
+      capture: true,
+    });
+
+    timer = window.setTimeout(() => doCount(), 6000);
   }
 
   function loadAudioEnabled() {
@@ -640,6 +777,7 @@
             state.stats.vote = v;
             updateStatsUI();
           }
+          refresh();
         }
       });
     }
@@ -1049,11 +1187,26 @@
   }
 
   function parseRoute() {
-    const raw = String(location.hash || "#/").replace(/^#/, "");
-    const clean = raw.startsWith("/") ? raw.slice(1) : raw;
-    const [path, query] = clean.split("?");
-    const parts = (path || "").split("/").filter(Boolean);
-    return { id: parts[0] || "start", parts, query: query || "" };
+    const rawHash = String(location.hash || "");
+    const hashPart = rawHash.replace(/^#/, "");
+    const useHash = hashPart.trim() !== "" && hashPart !== "/";
+
+    if (useHash) {
+      const clean = hashPart.startsWith("/") ? hashPart.slice(1) : hashPart;
+      const [path, query] = clean.split("?");
+      const parts = (path || "").split("/").filter(Boolean);
+      let id = parts[0] || "start";
+      if (parts[0] === "pv" && parts[1] === "wiadomosci") id = "pv-wiadomosci";
+      return { id, parts, query: query || "" };
+    }
+
+    const pathParts = String(location.pathname || "/")
+      .split("/")
+      .filter(Boolean);
+    const query = String(location.search || "").replace(/^\?/, "");
+    let id = pathParts[0] || "start";
+    if (pathParts[0] === "pv" && pathParts[1] === "wiadomosci") id = "pv-wiadomosci";
+    return { id, parts: pathParts, query };
   }
 
   function navTo(hash) {
@@ -1216,6 +1369,25 @@
     node.appendChild(el("div", { style: { fontSize: "13px" } }, message));
     document.body.appendChild(node);
     setTimeout(() => node.remove(), 2400);
+  }
+
+  function setRobotsMeta(content) {
+    const head = document.head || document.getElementsByTagName("head")[0];
+    if (!head) return;
+    const existing = head.querySelector('meta[name="robots"]');
+    const c = String(content || "").trim();
+    if (!c) {
+      existing?.remove();
+      return;
+    }
+    if (existing) {
+      existing.setAttribute("content", c);
+      return;
+    }
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "robots");
+    meta.setAttribute("content", c);
+    head.appendChild(meta);
   }
 
   function buildTopbar() {
@@ -1482,6 +1654,8 @@
         el("div", { class: "stat-label" }, "Deklaracje: „Głosuję na Staśka”"),
       ]),
     ]);
+    state.ui.statsBoxesActivated = false;
+    setupLazyStatsBoxes(statsBoxes);
 
     const quick = el("section", { class: "grid three", style: { marginTop: "14px" } }, [
       el("div", { class: "card reveal" }, [
@@ -2251,6 +2425,133 @@
     return el("div", {}, [title, lead, form]);
   }
 
+  function parsePvMessageElement(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return null;
+    const json = safeJsonParse(s);
+    if (json && typeof json === "object") {
+      const subject = String(json.temat ?? json.subject ?? "").trim();
+      const body = String(json.tresc ?? json.treść ?? json.body ?? "").trim();
+      if (subject || body) return { subject, body };
+    }
+
+    if (s.startsWith("{") && s.endsWith("}")) {
+      const inner = s.slice(1, -1);
+      const m = inner.match(/^([\s\S]*?)\s*\/{6}\s*([\s\S]*?)$/);
+      if (m) {
+        return { subject: String(m[1] || "").trim(), body: String(m[2] || "").trim() };
+      }
+    }
+    return { subject: "", body: s };
+  }
+
+  function pagePvWiadomosci() {
+    const CONTACT_KEY = "pv-mesege-staszek";
+
+    const title = el("h2", { class: "page-title reveal" }, "PV • Wiadomości");
+    const lead = el(
+      "p",
+      { class: "page-lead reveal" },
+      "Wiadomości wysłane przez zakładkę Kontakt (klucz: pv-mesege-staszek)."
+    );
+
+    const statusEl = el("div", { class: "thread-status", role: "status" }, "");
+    const countBadge = el("span", { class: "badge" }, "—");
+
+    const searchInput = el("input", {
+      placeholder: "Szukaj w wiadomościach…",
+      value: "",
+      "aria-label": "Szukaj w wiadomościach",
+      onInput: () => applyFilter(),
+    });
+
+    const refreshBtn = el(
+      "button",
+      {
+        class: "btn",
+        type: "button",
+        onClick: () => load(true),
+      },
+      "Odśwież"
+    );
+
+    const controls = el("div", { class: "search reveal" }, [searchInput, refreshBtn, countBadge]);
+
+    const list = el("div", { class: "grid", style: { marginTop: "12px" } }, [
+      el("div", { class: "card reveal" }, [el("h3", {}, "Ładowanie…"), el("p", {}, "…")]),
+    ]);
+
+    let all = [];
+
+    function renderList(items) {
+      list.textContent = "";
+      if (!items.length) {
+        list.appendChild(
+          el("div", { class: "card reveal" }, [
+            el("h3", {}, "Brak wiadomości"),
+            el("p", {}, "Nic tu jeszcze nie wpadło."),
+          ])
+        );
+        return;
+      }
+
+      for (const m of items) {
+        const subject = (m.subject || "").trim() || "(bez tematu)";
+        const body = (m.body || "").trim();
+        list.appendChild(
+          el("article", { class: "card reveal" }, [
+            el("h3", {}, subject),
+            body ? el("div", { class: "thread-msg", style: { marginTop: "10px" } }, body) : null,
+          ].filter(Boolean))
+        );
+      }
+      reveal(list);
+    }
+
+    function applyFilter() {
+      const q = String(searchInput.value || "").trim().toLowerCase();
+      if (!q) {
+        renderList(all);
+        return;
+      }
+      const filtered = all.filter((m) => {
+        const hay = `${m.subject || ""}\n${m.body || ""}`.toLowerCase();
+        return hay.includes(q);
+      });
+      renderList(filtered);
+    }
+
+    async function load(force = false) {
+      statusEl.dataset.kind = "";
+      statusEl.textContent = "Ładowanie…";
+      refreshBtn.disabled = true;
+      const items = await basicDbRead(CONTACT_KEY);
+      if (!list.isConnected) return;
+
+      all = items
+        .slice()
+        .reverse()
+        .map(parsePvMessageElement)
+        .filter(Boolean);
+
+      refreshBtn.disabled = false;
+      statusEl.textContent = "";
+      countBadge.textContent = `Wiadomości: ${all.length}`;
+      applyFilter();
+    }
+
+    // initial load
+    load();
+
+    return el("div", {}, [
+      title,
+      lead,
+      controls,
+      statusEl,
+      list,
+    ]);
+  }
+
   function buildModal(id, titleId, bodyId, onClose) {
     const closeBtn = el(
       "button",
@@ -2361,7 +2662,7 @@
   }
 
   function render() {
-    const { id, query } = parseRoute();
+    const { id, parts, query } = parseRoute();
     const prevRoute = state.route;
     state.route = id;
 
@@ -2378,6 +2679,7 @@
     else if (id === "plakaty") page = pagePlakaty();
     else if (id === "pomysly") page = pagePomysly();
     else if (id === "kontakt") page = pageKontakt();
+    else if (id === "pv-wiadomosci") page = pagePvWiadomosci();
     else page = pageStart();
 
     content.appendChild(page);
@@ -2409,7 +2711,10 @@
       plakaty: "Plakaty • STASZEK DLA STASZICA",
       pomysly: "Pomysły • STASZEK DLA STASZICA",
       kontakt: "Kontakt • STASZEK DLA STASZICA",
+      "pv-wiadomosci": "PV • Wiadomości",
     }[id] || "STASZEK DLA STASZICA";
+
+    setRobotsMeta(id === "pv-wiadomosci" ? "noindex, nofollow" : "");
 
     if (id === "pomysly" && query) {
       const m = query.match(/(?:^|&)punkt=([^&]+)/);
