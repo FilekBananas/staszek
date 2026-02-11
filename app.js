@@ -5,6 +5,7 @@
     stats: {
       views: null,
       visitors: null,
+      vote: null,
     },
     likes: {
       set: new Set(),
@@ -59,6 +60,42 @@
     } catch {
       return String(n);
     }
+  }
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+  }
+
+  function setAnimatedNumber(el, value) {
+    if (!el) return;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      el.dataset.loading = "1";
+      if (!el.textContent || el.textContent === "—") el.textContent = "…";
+      return;
+    }
+
+    el.dataset.loading = "0";
+    const prev = Number(el.dataset.current);
+    const from = Number.isFinite(prev) ? prev : 0;
+    const to = value;
+    if (from === to) {
+      el.dataset.current = String(to);
+      el.textContent = formatNumber(to);
+      return;
+    }
+
+    el.dataset.current = String(to);
+    const start = performance.now();
+    const duration = 720;
+
+    const tick = (now) => {
+      if (!el.isConnected) return;
+      const t = easeOutCubic((now - start) / duration);
+      const v = Math.round(from + (to - from) * t);
+      el.textContent = formatNumber(v);
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   function readCookie(name) {
@@ -203,6 +240,10 @@
     const badgeVisitors = $("#statVisitorsBadge");
     if (badgeViews) badgeViews.textContent = `Wyświetlenia: ${viewsText}`;
     if (badgeVisitors) badgeVisitors.textContent = `Osoby: ${visitorsText}`;
+
+    setAnimatedNumber($("#statViewsBox"), state.stats.views);
+    setAnimatedNumber($("#statVisitorsBox"), state.stats.visitors);
+    setAnimatedNumber($("#statVoteBox"), state.stats.vote);
   }
 
   let statsInitialized = false;
@@ -243,6 +284,13 @@
           updateStatsUI();
         }
       });
+    });
+
+    getCounter(COUNTER_SITE_VOTE).then((v) => {
+      if (typeof v === "number") {
+        state.stats.vote = v;
+        updateStatsUI();
+      }
     });
   }
 
@@ -580,6 +628,10 @@
         if (typeof v === "number") {
           state.likes.counts.set(counterName, v);
           countEl.textContent = formatNumber(v);
+          if (counterName === COUNTER_SITE_VOTE) {
+            state.stats.vote = v;
+            updateStatsUI();
+          }
         }
       });
     }
@@ -615,6 +667,10 @@
           state.likes.set.add(likeKey);
           state.likes.counts.set(counterName, newVal);
           saveLikeSet(state.likes.set);
+          if (counterName === COUNTER_SITE_VOTE) {
+            state.stats.vote = newVal;
+            updateStatsUI();
+          }
           refresh();
         },
       },
@@ -1393,6 +1449,27 @@
       ]),
     ]);
 
+    const statsBoxes = el("section", { class: "stats-grid", style: { marginTop: "14px" } }, [
+      el("div", { class: "card reveal stat" }, [
+        el("div", { class: "stat-value" }, [
+          el("span", { class: "stat-number", id: "statVisitorsBox", "data-loading": "1" }, "…"),
+        ]),
+        el("div", { class: "stat-label" }, "Osoby, które odwiedziły stronę"),
+      ]),
+      el("div", { class: "card reveal stat" }, [
+        el("div", { class: "stat-value" }, [
+          el("span", { class: "stat-number", id: "statViewsBox", "data-loading": "1" }, "…"),
+        ]),
+        el("div", { class: "stat-label" }, "Wyświetlenia strony"),
+      ]),
+      el("div", { class: "card reveal stat" }, [
+        el("div", { class: "stat-value" }, [
+          el("span", { class: "stat-number", id: "statVoteBox", "data-loading": "1" }, "…"),
+        ]),
+        el("div", { class: "stat-label" }, "Deklaracje: „Głosuję na Staśka”"),
+      ]),
+    ]);
+
     const quick = el("section", { class: "grid three", style: { marginTop: "14px" } }, [
       el("div", { class: "card reveal" }, [
         el("h3", {}, "13 punktów"),
@@ -1493,6 +1570,7 @@
 
     return el("div", {}, [
       hero,
+      statsBoxes,
       quick,
       staffSection,
       forumSection,
