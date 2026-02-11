@@ -138,7 +138,8 @@
 
   function addCounter(counterName, delta = 1) {
     const name = encodeURIComponent(String(counterName || ""));
-    const d = Math.max(0, Number.parseInt(String(delta), 10) || 0);
+    const parsed = Number.parseInt(String(delta), 10);
+    const d = Number.isFinite(parsed) ? parsed : 0;
     return fetch(counterUrl(`/dodaj/${name}/${d}`), {
       cache: "no-store",
       mode: "cors",
