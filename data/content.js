@@ -20,6 +20,7 @@
         title: "I want you for my army",
         subtitle: "La Familia wzywa",
       },
+      /*
       {
         src: "zdjęcia/głosuj_na_staszka-plakat.jpeg",
         title: "Głosuj na Staszka",
@@ -40,6 +41,7 @@
         title: "Pracujemy w trójkę",
         subtitle: "Budujemy za 12",
       },
+      */
       {
         src: "zdjęcia/badz_jak_pingwin-plakat.jpeg",
         title: "Bądź jak pingwin",
