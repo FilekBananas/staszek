@@ -2,6 +2,15 @@
   const state = {
     route: "",
     posterIndex: 0,
+    stats: {
+      views: null,
+      visitors: null,
+    },
+    likes: {
+      set: new Set(),
+      pending: new Set(),
+      counts: new Map(),
+    },
     audio: {
       enabled: true,
       unlocked: false,
@@ -30,8 +39,205 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  const COUNTER_HOST = "licznik-794170040235.europe-central2.run.app";
+  const COUNTER_BASE = `${location.protocol === "http:" ? "http" : "https"}://${COUNTER_HOST}`;
+
+  const COUNTER_SITE_VIEWS = "staszek-views";
+  const COUNTER_SITE_VISITORS = "staszek-visitors";
+  const COUNTER_SITE_VOTE = "staszek-vote";
+
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
+  }
+
+  function formatNumber(n) {
+    if (typeof n !== "number" || !Number.isFinite(n)) return "—";
+    try {
+      return new Intl.NumberFormat("pl-PL").format(n);
+    } catch {
+      return String(n);
+    }
+  }
+
+  function readCookie(name) {
+    const prefix = `${name}=`;
+    const all = String(document.cookie || "").split(";").map((s) => s.trim());
+    for (const part of all) {
+      if (part.startsWith(prefix)) return decodeURIComponent(part.slice(prefix.length));
+    }
+    return "";
+  }
+
+  function writeCookie(name, value, days = 365) {
+    const maxAge = Math.max(0, Math.floor(days * 24 * 60 * 60));
+    const v = encodeURIComponent(String(value));
+    document.cookie = `${name}=${v}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+  }
+
+  function hasCookie(name) {
+    return readCookie(name) !== "";
+  }
+
+  function loadLikeSet() {
+    const raw = readCookie("staszek_likes");
+    const set = new Set();
+    if (!raw) return set;
+    for (const part of raw.split(",")) {
+      const k = part.trim();
+      if (k) set.add(k);
+    }
+    return set;
+  }
+
+  function saveLikeSet(set) {
+    try {
+      const list = Array.from(set).slice(0, 600);
+      writeCookie("staszek_likes", list.join(","), 400);
+    } catch {}
+  }
+
+  function hash32(str) {
+    let h = 0x811c9dc5;
+    const s = String(str || "");
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(16).padStart(8, "0");
+  }
+
+  function counterUrl(path) {
+    return `${COUNTER_BASE}${path}`;
+  }
+
+  function parseCounterValue(text) {
+    const n = Number.parseInt(String(text || "").trim(), 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function safeJsonParse(text) {
+    try {
+      return JSON.parse(String(text || ""));
+    } catch {
+      return null;
+    }
+  }
+
+  function getCounter(counterName) {
+    const name = encodeURIComponent(String(counterName || ""));
+    return fetch(counterUrl(`/ile/${name}`), { cache: "no-store", mode: "cors" })
+      .then((r) => r.text())
+      .then(parseCounterValue)
+      .catch(() => null);
+  }
+
+  function addCounter(counterName, delta = 1) {
+    const name = encodeURIComponent(String(counterName || ""));
+    const d = Math.max(0, Number.parseInt(String(delta), 10) || 0);
+    return fetch(counterUrl(`/dodaj/${name}/${d}`), {
+      cache: "no-store",
+      mode: "cors",
+      keepalive: true,
+    })
+      .then((r) => r.text())
+      .then(parseCounterValue)
+      .catch(() => null);
+  }
+
+  function parseBasicDbItems(text) {
+    const parsed = safeJsonParse(text);
+    if (Array.isArray(parsed)) return parsed.map((x) => String(x));
+    if (parsed && typeof parsed === "object") {
+      const list =
+        parsed.items || parsed.data || parsed.elements || parsed.value || parsed.values;
+      if (Array.isArray(list)) return list.map((x) => String(x));
+    }
+    return String(text || "")
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  function basicDbAdd(key, element) {
+    const k = encodeURIComponent(String(key || ""));
+    const e = encodeURIComponent(String(element || ""));
+    return fetch(counterUrl(`/baza-podstawowa/dodaj/${k}/${e}`), {
+      cache: "no-store",
+      mode: "cors",
+      keepalive: true,
+    })
+      .then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .catch(() => false);
+  }
+
+  function basicDbRead(key) {
+    const k = encodeURIComponent(String(key || ""));
+    return fetch(counterUrl(`/baza-podstawowa/odczyt/${k}?format=json`), {
+      cache: "no-store",
+      mode: "cors",
+    })
+      .then((r) => r.text().then((t) => ({ ok: r.ok, status: r.status, text: t })))
+      .then(({ ok, status, text }) => {
+        if (!ok) throw new Error(`HTTP ${status}`);
+        return parseBasicDbItems(text);
+      })
+      .catch(() => []);
+  }
+
+  function updateStatsUI() {
+    const viewsText = formatNumber(state.stats.views);
+    const visitorsText = formatNumber(state.stats.visitors);
+
+    const viewsEl = $("#statViews");
+    const visitorsEl = $("#statVisitors");
+    if (viewsEl) viewsEl.textContent = viewsText;
+    if (visitorsEl) visitorsEl.textContent = visitorsText;
+
+    const badgeViews = $("#statViewsBadge");
+    const badgeVisitors = $("#statVisitorsBadge");
+    if (badgeViews) badgeViews.textContent = `Wyświetlenia: ${viewsText}`;
+    if (badgeVisitors) badgeVisitors.textContent = `Osoby: ${visitorsText}`;
+  }
+
+  let statsInitialized = false;
+  function initSiteStats() {
+    if (statsInitialized) return;
+    statsInitialized = true;
+
+    addCounter(COUNTER_SITE_VIEWS, 1).then((v) => {
+      if (typeof v === "number") {
+        state.stats.views = v;
+        updateStatsUI();
+        return;
+      }
+      getCounter(COUNTER_SITE_VIEWS).then((v2) => {
+        if (typeof v2 === "number") {
+          state.stats.views = v2;
+          updateStatsUI();
+        }
+      });
+    });
+
+    const seenKey = "staszek_seen";
+    const first = !hasCookie(seenKey);
+    if (first) writeCookie(seenKey, "1", 400);
+
+    const p = first
+      ? addCounter(COUNTER_SITE_VISITORS, 1)
+      : getCounter(COUNTER_SITE_VISITORS);
+    p.then((v) => {
+      if (typeof v === "number") {
+        state.stats.visitors = v;
+        updateStatsUI();
+        return;
+      }
+      getCounter(COUNTER_SITE_VISITORS).then((v2) => {
+        if (typeof v2 === "number") {
+          state.stats.visitors = v2;
+          updateStatsUI();
+        }
+      });
+    });
   }
 
   function loadAudioEnabled() {
@@ -317,6 +523,454 @@
       },
       [...base, ...(isOn ? waves : mute)]
     );
+  }
+
+  function heartIcon(filled) {
+    const path =
+      "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z";
+    return svg(
+      "svg",
+      {
+        class: "icon-svg",
+        viewBox: "0 0 24 24",
+        width: "20",
+        height: "20",
+        "aria-hidden": "true",
+        focusable: "false",
+      },
+      [
+        svg("path", {
+          d: path,
+          fill: filled ? "currentColor" : "none",
+          stroke: filled ? "none" : "currentColor",
+          "stroke-width": filled ? null : "2",
+          "stroke-linejoin": "round",
+        }),
+      ]
+    );
+  }
+
+  function buildLikeControl({
+    likeKey,
+    counterName,
+    label = "",
+    className = "btn like-btn",
+    title = "Polub",
+    stopPropagation = false,
+  }) {
+    const liked = state.likes.set.has(likeKey);
+    const pending = state.likes.pending.has(likeKey);
+
+    const iconWrap = el("span", { class: "like-icon" }, heartIcon(liked));
+    const labelEl = label ? el("span", { class: "like-label" }, label) : null;
+
+    const countEl = el("span", { class: "like-count", title: "Polubienia" }, "—");
+
+    const known = state.likes.counts.get(counterName);
+    if (typeof known === "number") countEl.textContent = formatNumber(known);
+    else {
+      getCounter(counterName).then((v) => {
+        if (!countEl.isConnected) return;
+        if (typeof v === "number") {
+          state.likes.counts.set(counterName, v);
+          countEl.textContent = formatNumber(v);
+        }
+      });
+    }
+
+    const btn = el(
+      "button",
+      {
+        class: className,
+        type: "button",
+        title,
+        disabled: liked || pending,
+        "aria-pressed": liked ? "true" : "false",
+        onClick: async (e) => {
+          if (stopPropagation) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          if (state.likes.set.has(likeKey)) return;
+          if (state.likes.pending.has(likeKey)) return;
+
+          state.likes.pending.add(likeKey);
+          refresh();
+
+          const newVal = await addCounter(counterName, 1);
+          if (typeof newVal !== "number") {
+            state.likes.pending.delete(likeKey);
+            refresh();
+            toast("Nie udało się wysłać lajka. Spróbuj ponownie.");
+            return;
+          }
+
+          state.likes.pending.delete(likeKey);
+          state.likes.set.add(likeKey);
+          state.likes.counts.set(counterName, newVal);
+          saveLikeSet(state.likes.set);
+          refresh();
+        },
+      },
+      [iconWrap, labelEl, countEl].filter(Boolean)
+    );
+
+    function refresh() {
+      const isLiked = state.likes.set.has(likeKey);
+      const isPending = state.likes.pending.has(likeKey);
+      btn.disabled = isLiked || isPending;
+      btn.setAttribute("aria-pressed", isLiked ? "true" : "false");
+      btn.classList.toggle("is-liked", isLiked);
+      btn.classList.toggle("is-pending", isPending);
+
+      iconWrap.textContent = "";
+      iconWrap.appendChild(heartIcon(isLiked));
+
+      const v = state.likes.counts.get(counterName);
+      if (typeof v === "number") countEl.textContent = formatNumber(v);
+    }
+    refresh();
+    return btn;
+  }
+
+  const FORUM_SITE_KEY = "staszek-forum";
+  const FORUM_MAX_NAME = 26;
+  const FORUM_MAX_MESSAGE = 360;
+  const FORUM_COOLDOWN_MS = 8000;
+  const FORUM_CACHE_TTL_MS = 15000;
+  const forumCache = new Map();
+
+  function stripDiacriticsLower(s) {
+    const raw = String(s || "");
+    try {
+      return raw
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    } catch {
+      return raw.toLowerCase();
+    }
+  }
+
+  function slugKeyPart(s, fallback = "x") {
+    const clean = stripDiacriticsLower(s)
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60);
+    return clean || fallback;
+  }
+
+  function forumKeyForNews(postId) {
+    return `staszek-news-${slugKeyPart(postId, "post")}`;
+  }
+
+  function forumKeyForProgram(pointId) {
+    return `staszek-program-${slugKeyPart(pointId, "punkt")}`;
+  }
+
+  function forumKeyForPoster(src) {
+    return `staszek-poster-${hash32(src)}`;
+  }
+
+  function likeKeyForNews(postId) {
+    return `like:news:${slugKeyPart(postId, "post")}`;
+  }
+
+  function likeCounterForNews(postId) {
+    return `like-news-${slugKeyPart(postId, "post")}`;
+  }
+
+  function likeKeyForProgram(pointId) {
+    return `like:program:${slugKeyPart(pointId, "punkt")}`;
+  }
+
+  function likeCounterForProgram(pointId) {
+    return `like-program-${slugKeyPart(pointId, "punkt")}`;
+  }
+
+  function likeKeyForPoster(src) {
+    return `like:poster:${hash32(src)}`;
+  }
+
+  function likeCounterForPoster(src) {
+    return `like-poster-${hash32(src)}`;
+  }
+
+  function sanitizeForumName(name) {
+    const s = String(name || "").replace(/\s+/g, " ").trim();
+    if (!s) return "";
+    return s.slice(0, FORUM_MAX_NAME);
+  }
+
+  function sanitizeForumMessage(message) {
+    const s = String(message || "").replace(/\r\n/g, "\n").trim();
+    if (!s) return "";
+    return s.slice(0, FORUM_MAX_MESSAGE);
+  }
+
+  function parseForumEntry(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return null;
+    const parsed = safeJsonParse(s);
+    if (parsed && typeof parsed === "object") {
+      const msg = String(parsed.m ?? parsed.message ?? "").trim();
+      if (msg) {
+        return {
+          t: Number(parsed.t ?? parsed.time ?? 0) || 0,
+          n: String(parsed.n ?? parsed.name ?? "").trim(),
+          m: msg,
+        };
+      }
+    }
+    return { t: 0, n: "", m: s };
+  }
+
+  function formatForumTime(ms) {
+    const t = Number(ms) || 0;
+    if (!t) return "";
+    try {
+      return new Date(t).toLocaleString("pl-PL", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
+    } catch {
+      try {
+        return new Date(t).toLocaleString();
+      } catch {
+        return "";
+      }
+    }
+  }
+
+  function buildForumPanel({
+    threadKey,
+    placeholder = "Napisz wiadomość…",
+    compact = false,
+    autoLoad = false,
+    onCount = null,
+  }) {
+    const keyHash = hash32(threadKey);
+    const cooldownKey = `staszek_forum_last_${keyHash}`;
+
+    let items = [];
+    let loaded = false;
+    let loading = false;
+
+    const notice = el(
+      "div",
+      { class: "thread-notice" },
+      "Wpisy są publiczne. Nie podawaj danych osobowych."
+    );
+
+    const nameInput = el("input", {
+      class: "thread-input",
+      placeholder: "Imię / nick (opcjonalnie)",
+      maxLength: String(FORUM_MAX_NAME),
+      "aria-label": "Imię lub nick",
+      autocomplete: "nickname",
+      inputmode: "text",
+    });
+
+    const msgInput = el("textarea", {
+      class: "thread-input thread-textarea",
+      placeholder,
+      rows: compact ? "3" : "4",
+      maxLength: String(FORUM_MAX_MESSAGE),
+      "aria-label": "Treść wpisu",
+    });
+
+    const sendBtn = el(
+      "button",
+      { class: "btn btn-primary", type: "submit" },
+      "Wyślij"
+    );
+
+    const refreshBtn = el(
+      "button",
+      {
+        class: "btn",
+        type: "button",
+        onClick: () => load(true),
+      },
+      "Odśwież"
+    );
+
+    const statusEl = el("div", { class: "thread-status", role: "status" }, "");
+    const listEl = el("div", { class: "thread-list" }, [
+      el("div", { class: "thread-empty" }, "Brak wpisów (jeszcze)."),
+    ]);
+
+    const hint = el(
+      "div",
+      { class: "thread-hint" },
+      `Max ${FORUM_MAX_MESSAGE} znaków.`
+    );
+
+    const actions = el("div", { class: "thread-actions" }, [sendBtn, refreshBtn, hint]);
+
+    const form = el(
+      "form",
+      {
+        class: "thread-form",
+        onSubmit: async (e) => {
+          e.preventDefault();
+          if (loading) return;
+
+          const n = sanitizeForumName(nameInput.value);
+          const m = sanitizeForumMessage(msgInput.value);
+          if (!m) {
+            toast("Wpis nie może być pusty.");
+            return;
+          }
+
+          try {
+            const last = Number(localStorage.getItem(cooldownKey) || "0") || 0;
+            if (Date.now() - last < FORUM_COOLDOWN_MS) {
+              toast("Poczekaj chwilę przed kolejnym wpisem.");
+              return;
+            }
+          } catch {}
+
+          const entry = { t: Date.now(), n, m };
+          const payload = JSON.stringify(entry);
+
+          loading = true;
+          sendBtn.disabled = true;
+          refreshBtn.disabled = true;
+          setStatus("Wysyłanie…");
+
+          const ok = await basicDbAdd(threadKey, payload);
+          loading = false;
+          sendBtn.disabled = false;
+          refreshBtn.disabled = false;
+
+          if (!ok) {
+            setStatus("Nie udało się dodać wpisu. Spróbuj ponownie.", "err");
+            return;
+          }
+
+          try {
+            localStorage.setItem(cooldownKey, String(Date.now()));
+          } catch {}
+
+          msgInput.value = "";
+          if (!loaded) loaded = true;
+          items = [entry, ...items].slice(0, 200);
+          forumCache.set(threadKey, { items, at: Date.now() });
+          render();
+          setStatus("Dodano.", "ok");
+          setTimeout(() => setStatus(""), 1800);
+        },
+      },
+      [nameInput, msgInput, actions]
+    );
+
+    const root = el("div", { class: `thread-panel ${compact ? "is-compact" : ""}` }, [
+      notice,
+      form,
+      statusEl,
+      listEl,
+    ]);
+
+    function setStatus(msg, kind = "") {
+      statusEl.textContent = msg || "";
+      statusEl.dataset.kind = kind || "";
+    }
+
+    function render() {
+      if (typeof onCount === "function") onCount(items.length);
+
+      listEl.textContent = "";
+      if (!items.length) {
+        listEl.appendChild(
+          el(
+            "div",
+            { class: "thread-empty" },
+            "Brak wpisów. Możesz być pierwszy/a."
+          )
+        );
+        return;
+      }
+
+      for (const it of items) {
+        const who = sanitizeForumName(it.n) || "Anonim";
+        const time = formatForumTime(it.t);
+        const head = el("div", { class: "thread-item-head" }, [
+          el("strong", { class: "thread-name" }, who),
+          time ? el("span", { class: "thread-time" }, time) : null,
+        ]);
+        const msg = el("div", { class: "thread-msg" }, it.m);
+        listEl.appendChild(el("div", { class: "thread-item" }, [head, msg]));
+      }
+    }
+
+    async function load(force = false) {
+      if (loading) return;
+      loading = true;
+      refreshBtn.disabled = true;
+      setStatus("Ładowanie…");
+
+      const cached = forumCache.get(threadKey);
+      if (!force && cached && Date.now() - cached.at < FORUM_CACHE_TTL_MS) {
+        items = cached.items;
+        loaded = true;
+        loading = false;
+        refreshBtn.disabled = false;
+        setStatus("");
+        render();
+        return;
+      }
+
+      const raw = await basicDbRead(threadKey);
+      const parsed = raw.map(parseForumEntry).filter(Boolean);
+
+      items = parsed
+        .slice()
+        .reverse()
+        .slice(0, 200);
+      loaded = true;
+      forumCache.set(threadKey, { items, at: Date.now() });
+
+      loading = false;
+      refreshBtn.disabled = false;
+      setStatus("");
+      render();
+    }
+
+    if (autoLoad) load();
+
+    return { node: root, load };
+  }
+
+  function buildForumDetails({
+    threadKey,
+    label = "Dyskusja",
+    placeholder = "Napisz wiadomość…",
+    compact = false,
+  }) {
+    const countBadge = el("span", { class: "thread-count", hidden: true }, "");
+    const summary = el("summary", { class: "thread-summary" }, [
+      el("span", { class: "thread-label" }, label),
+      countBadge,
+    ]);
+
+    const panel = buildForumPanel({
+      threadKey,
+      placeholder,
+      compact,
+      autoLoad: false,
+      onCount: (n) => {
+        const v = Number(n) || 0;
+        countBadge.hidden = v <= 0;
+        countBadge.textContent = v > 0 ? String(v) : "";
+      },
+    });
+
+    const details = el("details", { class: "thread" }, [summary, panel.node]);
+    details.addEventListener("toggle", () => {
+      if (details.open) panel.load(false);
+    });
+    return details;
   }
 
   function parseRoute() {
@@ -622,6 +1276,16 @@
           ),
         ]
       ),
+      el(
+        "div",
+        { style: { marginTop: "10px", color: "rgba(255,255,255,0.78)" } },
+        [
+          "Wyświetlenia: ",
+          el("strong", { id: "statViews" }, "—"),
+          " • Osoby: ",
+          el("strong", { id: "statVisitors" }, "—"),
+        ]
+      ),
     ]);
     return foot;
   }
@@ -710,6 +1374,15 @@
               "Udostępnij link"
             ),
           ]),
+          el("div", { class: "meta-row" }, [
+            buildLikeControl({
+              likeKey: "like:vote",
+              counterName: COUNTER_SITE_VOTE,
+              label: "Głosuję na Staśka",
+              className: "btn btn-primary like-btn like-vote",
+              title: "Głosuję na Staśka",
+            }),
+          ]),
         ]),
       ]),
     ]);
@@ -796,10 +1469,27 @@
       ]),
     ]);
 
+    const forumPanel = buildForumPanel({
+      threadKey: FORUM_SITE_KEY,
+      placeholder: "Napisz na forum…",
+      autoLoad: true,
+    });
+
+    const forumSection = el("section", { class: "card reveal", style: { marginTop: "14px" } }, [
+      el("h3", {}, "Forum"),
+      el(
+        "p",
+        {},
+        "Masz pytanie, pomysł albo chcesz zostawić wiadomość dla kampanii? Napisz tutaj."
+      ),
+      forumPanel.node,
+    ]);
+
     return el("div", {}, [
       hero,
       quick,
       staffSection,
+      forumSection,
     ]);
   }
 
@@ -963,8 +1653,18 @@
         el("div", { class: "meta-row" }, [
           ...tagBadges,
           el("span", { style: { flex: "1" } }),
+          buildLikeControl({
+            likeKey: likeKeyForNews(p.id),
+            counterName: likeCounterForNews(p.id),
+            title: "Polub post",
+          }),
           shareBtn,
         ]),
+        buildForumDetails({
+          threadKey: forumKeyForNews(p.id),
+          label: "Dyskusja",
+          placeholder: "Napisz komentarz do posta…",
+        }),
       ]);
       list.appendChild(card);
     }
@@ -1021,9 +1721,20 @@
         badge,
         ...tags,
         el("span", { style: { flex: "1" } }),
+        buildLikeControl({
+          likeKey: likeKeyForProgram(p.id),
+          counterName: likeCounterForProgram(p.id),
+          title: "Polub punkt programu",
+        }),
         shareBtn,
         openBtn,
       ]),
+      buildForumDetails({
+        threadKey: forumKeyForProgram(p.id),
+        label: "Dyskusja",
+        placeholder: "Napisz komentarz do punktu programu…",
+        compact: true,
+      }),
     ]);
   }
 
@@ -1043,6 +1754,12 @@
       el("div", { class: "meta-row" }, [
         el("span", { class: `badge ${point.approved ? "ok" : "warn"}` }, point.approved ? "✅ Approved by Dyrekcja" : "⏳ W trakcie"),
         ...(point.tags || []).map((t) => el("span", { class: "badge" }, `#${t}`)),
+        el("span", { style: { flex: "1" } }),
+        buildLikeControl({
+          likeKey: likeKeyForProgram(point.id),
+          counterName: likeCounterForProgram(point.id),
+          title: "Polub punkt programu",
+        }),
       ]),
     ]));
 
@@ -1054,6 +1771,20 @@
       ]);
       col.appendChild(spot);
     }
+
+    const discussionPanel = buildForumPanel({
+      threadKey: forumKeyForProgram(point.id),
+      placeholder: "Napisz komentarz do tego punktu programu…",
+      compact: true,
+      autoLoad: true,
+    });
+
+    col.appendChild(
+      el("div", { class: "card" }, [
+        el("h3", {}, "Dyskusja"),
+        discussionPanel.node,
+      ])
+    );
 
     body.appendChild(col);
 
@@ -1232,16 +1963,32 @@
       "→"
     );
     const navGroup = el("div", { class: "poster-nav" }, [prevBtn, nextBtn]);
+    const likeBtn = buildLikeControl({
+      likeKey: likeKeyForPoster(p.src),
+      counterName: likeCounterForPoster(p.src),
+      title: "Polub plakat",
+    });
     const metaRow = el("div", { class: "poster-meta-row" }, [
       el("span", { class: "badge", title: p.subtitle || "" }, p.subtitle || ""),
-      el(
-        "a",
-        { class: "btn btn-primary", href: p.src, download: "" },
-        "Pobierz"
-      ),
+      el("div", { class: "poster-ctas" }, [
+        likeBtn,
+        el(
+          "a",
+          { class: "btn btn-primary", href: p.src, download: "" },
+          "Pobierz"
+        ),
+      ]),
     ]);
     const navRow = el("div", { class: "poster-nav-row" }, navGroup);
     body.appendChild(el("div", { class: "poster-actions" }, [metaRow, navRow]));
+    body.appendChild(
+      buildForumDetails({
+        threadKey: forumKeyForPoster(p.src),
+        label: "Dyskusja",
+        placeholder: "Napisz komentarz do plakatu…",
+        compact: true,
+      })
+    );
 
     modal.setAttribute("aria-hidden", "false");
     modal.focus();
@@ -1424,6 +2171,7 @@
 
     ensureModals();
     reveal(content);
+    updateStatsUI();
 
     if (AUDIO_FEATURE_ENABLED) {
       syncAudioWithRoute(id);
@@ -1501,6 +2249,9 @@
       );
       return;
     }
+
+    state.likes.set = loadLikeSet();
+    initSiteStats();
 
     if (AUDIO_FEATURE_ENABLED) {
       state.audio.enabled = loadAudioEnabled();

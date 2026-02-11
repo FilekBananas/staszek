@@ -766,6 +766,205 @@ body {
   align-items: center;
 }
 
+.poster-ctas {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.like-btn {
+  gap: 8px;
+  padding: 9px 10px;
+}
+
+.like-btn .like-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(242, 196, 90, 0.95);
+}
+
+.like-btn .like-label {
+  font-weight: 760;
+}
+
+.like-btn .like-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.like-btn.is-liked {
+  background: rgba(242, 196, 90, 0.12);
+  border-color: rgba(242, 196, 90, 0.35);
+}
+
+.like-btn.is-pending {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.like-vote {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.thread {
+  margin-top: 12px;
+}
+
+.thread-summary {
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.16);
+  user-select: none;
+}
+
+.thread-summary::-webkit-details-marker {
+  display: none;
+}
+
+.thread-summary::marker {
+  content: "";
+}
+
+.thread-summary:focus-visible {
+  outline: 2px solid rgba(242, 196, 90, 0.55);
+  outline-offset: 2px;
+}
+
+.thread-count {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.thread-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.thread-notice {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.thread-form {
+  display: grid;
+  gap: 8px;
+}
+
+.thread-input {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  outline: none;
+}
+
+.thread-input:focus {
+  border-color: rgba(242, 196, 90, 0.42);
+  box-shadow: 0 0 0 3px rgba(242, 196, 90, 0.14);
+}
+
+.thread-textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.thread-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.thread-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.thread-status {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  min-height: 1.2em;
+}
+
+.thread-status[data-kind="ok"] {
+  color: rgba(87, 209, 139, 0.95);
+}
+
+.thread-status[data-kind="err"] {
+  color: rgba(255, 204, 102, 0.95);
+}
+
+.thread-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.thread-empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 6px 0;
+}
+
+.thread-item {
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.thread-item-head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.thread-time {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.thread-msg {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.92);
+}
+
 .modal {
   position: fixed;
   inset: 0;
