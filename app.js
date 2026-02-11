@@ -54,6 +54,9 @@
   const COUNTER_SITE_EXONERATE = "staszek-uniewinnic";
   const MIN_PUBLIC_VOTE_COUNT = 20;
   const VIEW_COOLDOWN_MS = 2 * 60 * 1000;
+  // Tymczasowo wyłączone: baner + przycisk związany z artykułem o wykluczeniu.
+  // Ustaw na `true`, żeby łatwo przywrócić.
+  const APPEAL_ARTICLE_FEATURE_ENABLED = false;
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
@@ -1587,40 +1590,44 @@
     const ig = "https://www.instagram.com/tomaszewski_2026/";
     const creatorUrl = "https://filip.biskupski.site/";
     const staffLinks = window.STASZEK?.staffLinks || {};
-    const analysisPost = (window.STASZEK?.news || []).find(
-      (p) => p && p.id === "post-analiza-wykluczenie"
-    );
+    const analysisPost = APPEAL_ARTICLE_FEATURE_ENABLED
+      ? (window.STASZEK?.news || []).find((p) => p && p.id === "post-analiza-wykluczenie")
+      : null;
 
-    const banner = el("section", { class: "card reveal announcement" }, [
-      el("div", { class: "announcement-head" }, [
-        el("span", { class: "badge warn" }, "WAŻNE"),
-        el("strong", {}, "Wykluczenie z wyborów — apel"),
-      ]),
-      el(
-        "p",
-        {},
-        "Jeśli popierasz apel o przywrócenie Stanisława do wyborów, kliknij poniżej:"
-      ),
-      el("div", { class: "meta-row" }, [
-        buildLikeControl({
-          likeKey: "like:uniewinnic",
-          counterName: COUNTER_SITE_EXONERATE,
-          label: "Uniewinnić Stanisława",
-          className: "btn btn-primary like-btn like-appeal",
-          title: "Uniewinnić Stanisława",
-        }),
-      ]),
-      analysisPost
-        ? (() => {
-            const titleRow = el("div", { class: "post-title" }, [
-              el("h3", {}, analysisPost.title || "Analiza"),
-              analysisPost.date ? el("span", { class: "post-date" }, formatDate(analysisPost.date)) : null,
-            ]);
-            const body = renderRichText(analysisPost.body || "");
-            return el("div", { style: { marginTop: "12px" } }, [titleRow, body]);
-          })()
-        : null,
-    ]);
+    const banner = APPEAL_ARTICLE_FEATURE_ENABLED
+      ? el("section", { class: "card reveal announcement" }, [
+          el("div", { class: "announcement-head" }, [
+            el("span", { class: "badge warn" }, "WAŻNE"),
+            el("strong", {}, "Wykluczenie z wyborów — apel"),
+          ]),
+          el(
+            "p",
+            {},
+            "Jeśli popierasz apel o przywrócenie Stanisława do wyborów, kliknij poniżej:"
+          ),
+          el("div", { class: "meta-row" }, [
+            buildLikeControl({
+              likeKey: "like:uniewinnic",
+              counterName: COUNTER_SITE_EXONERATE,
+              label: "Uniewinnić Stanisława",
+              className: "btn btn-primary like-btn like-appeal",
+              title: "Uniewinnić Stanisława",
+            }),
+          ]),
+          analysisPost
+            ? (() => {
+                const titleRow = el("div", { class: "post-title" }, [
+                  el("h3", {}, analysisPost.title || "Analiza"),
+                  analysisPost.date
+                    ? el("span", { class: "post-date" }, formatDate(analysisPost.date))
+                    : null,
+                ]);
+                const body = renderRichText(analysisPost.body || "");
+                return el("div", { style: { marginTop: "12px" } }, [titleRow, body]);
+              })()
+            : null,
+        ])
+      : null;
 
     const hero = el("section", { class: "hero reveal" }, [
       el("div", {
@@ -1986,7 +1993,7 @@
           el("h3", {}, p.title || "Post"),
           el("div", { class: "post-date" }, formatDate(p.date)),
         ]),
-        p.id === "post-analiza-wykluczenie"
+        APPEAL_ARTICLE_FEATURE_ENABLED && p.id === "post-analiza-wykluczenie"
           ? el("div", { class: "meta-row" }, [
               buildLikeControl({
                 likeKey: "like:uniewinnic",

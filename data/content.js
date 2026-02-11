@@ -241,6 +241,7 @@ Capisci?????🇮🇹
   };
 
   const news = [
+    /*
     {
       id: "post-analiza-wykluczenie",
       title:
@@ -282,6 +283,7 @@ Kara w postaci wykluczenia z wyborów jest w tej sytuacji nieproporcjonalna do z
 
 W świetle powyższego decyzja powinna zostać ponownie przeanalizowana przez Dyrekcję szkoły, a jej wykonanie wstrzymane do czasu wyjaśnienia wątpliwości prawnych.`,
     },
+    */
     {
       id: "post-paczki-quiz",
       title: "Test wiedzy o pączkach — Giovedì Grasso",
