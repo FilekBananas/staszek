@@ -244,7 +244,7 @@ Capisci?????🇮🇹
     {
       id: "post-analiza-wykluczenie",
       title:
-        "Stanisław Tomaszewski bezpodstawnie wykluczony z wyborów – analiza prawna decyzji komisji",
+        "Stanisław Tomaszewski bezpodstawnie wykluczony z wyborów – analiza decyzji komisji",
       date: "",
       image: "",
       tags: ["wybory", "prawo", "analiza"],
