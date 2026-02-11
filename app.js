@@ -1587,6 +1587,9 @@
     const ig = "https://www.instagram.com/tomaszewski_2026/";
     const creatorUrl = "https://filip.biskupski.site/";
     const staffLinks = window.STASZEK?.staffLinks || {};
+    const analysisPost = (window.STASZEK?.news || []).find(
+      (p) => p && p.id === "post-analiza-wykluczenie"
+    );
 
     const banner = el("section", { class: "card reveal announcement" }, [
       el("div", { class: "announcement-head" }, [
@@ -1606,16 +1609,17 @@
           className: "btn btn-primary like-btn like-appeal",
           title: "Uniewinnić Stanisława",
         }),
-        el(
-          "a",
-          {
-            class: "btn",
-            href: "#/aktualnosci?post=post-analiza-wykluczenie",
-            title: "Przejdź do analizy prawnej w Aktualnościach",
-          },
-          "Czytaj analizę"
-        ),
       ]),
+      analysisPost
+        ? (() => {
+            const titleRow = el("div", { class: "post-title" }, [
+              el("h3", {}, analysisPost.title || "Analiza"),
+              analysisPost.date ? el("span", { class: "post-date" }, formatDate(analysisPost.date)) : null,
+            ]);
+            const body = renderRichText(analysisPost.body || "");
+            return el("div", { style: { marginTop: "12px" } }, [titleRow, body]);
+          })()
+        : null,
     ]);
 
     const hero = el("section", { class: "hero reveal" }, [

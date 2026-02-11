@@ -26,6 +26,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -868,7 +872,11 @@ body {
 
 .like-vote {
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+.like-vote .like-count {
+  margin-left: auto;
 }
 
 .announcement {
