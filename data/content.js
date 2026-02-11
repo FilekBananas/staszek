@@ -245,6 +245,7 @@ Capisci?????🇮🇹
       id: "post-paczki-quiz",
       title: "Test wiedzy o pączkach — Giovedì Grasso",
       date: "",
+      image: "zdjęcia/paczki_test_wiedzy.jpeg",
       tags: ["quiz", "pączki", "tłusty czwartek"],
       body: `Buongiorno, moi drodzy amici🫶
 
