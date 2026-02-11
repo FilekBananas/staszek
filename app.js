@@ -1986,6 +1986,17 @@
           el("h3", {}, p.title || "Post"),
           el("div", { class: "post-date" }, formatDate(p.date)),
         ]),
+        p.id === "post-analiza-wykluczenie"
+          ? el("div", { class: "meta-row" }, [
+              buildLikeControl({
+                likeKey: "like:uniewinnic",
+                counterName: COUNTER_SITE_EXONERATE,
+                label: "Uniewinnić Stanisława",
+                className: "btn btn-primary like-btn like-appeal",
+                title: "Uniewinnić Stanisława",
+              }),
+            ])
+          : null,
         p.video
           ? makeVideo(p.video, p.image || "", p.title || "Wideo")
           : p.image
