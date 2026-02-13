@@ -301,7 +301,7 @@
     const showVote =
       typeof state.stats.vote === "number" &&
       Number.isFinite(state.stats.vote) &&
-      state.stats.vote >= MIN_PUBLIC_VOTE_COUNT;
+      (isAdminEnabled() || state.stats.vote >= MIN_PUBLIC_VOTE_COUNT);
     if (voteCard) voteCard.hidden = !showVote;
     if (showVote) setAnimatedNumber($("#statVoteBox"), state.stats.vote);
   }
@@ -921,7 +921,10 @@
 
       const hideVoteCount =
         counterName === COUNTER_SITE_VOTE &&
-        !(typeof v === "number" && Number.isFinite(v) && v >= MIN_PUBLIC_VOTE_COUNT);
+        !(
+          isAdminEnabled() ||
+          (typeof v === "number" && Number.isFinite(v) && v >= MIN_PUBLIC_VOTE_COUNT)
+        );
       countEl.hidden = hideVoteCount;
     }
     refresh();
