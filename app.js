@@ -1334,6 +1334,44 @@
     location.hash = hash;
   }
 
+  function siteBaseUrl() {
+    try {
+      const url = new URL(location.href);
+      url.hash = "";
+      url.search = "";
+      let path = url.pathname || "/";
+      if (!path.endsWith("/")) path = path.replace(/\/[^/]*$/, "/");
+      url.pathname = path;
+      return url.toString();
+    } catch {
+      const raw = String(location.href || "").split("#")[0].split("?")[0];
+      if (raw.endsWith("/")) return raw;
+      return raw.replace(/\/[^/]*$/, "/");
+    }
+  }
+
+  function shareUrlForNews(postId) {
+    const base = siteBaseUrl();
+    const id = encodeURIComponent(String(postId || ""));
+    return `${base}share/aktualnosci/${id}/`;
+  }
+
+  function shareUrlForProgram(pointId) {
+    const base = siteBaseUrl();
+    const id = encodeURIComponent(String(pointId || ""));
+    return `${base}share/pomysly/${id}/`;
+  }
+
+  function posterShareId(src) {
+    return hash32(String(src || ""));
+  }
+
+  function shareUrlForPoster(src) {
+    const base = siteBaseUrl();
+    const id = encodeURIComponent(posterShareId(src));
+    return `${base}share/plakaty/${id}/`;
+  }
+
   function replaceUrlToAppRoot() {
     const path = String(location.pathname || "/");
     const markers = ["/admin/", "/pv/"];
@@ -2205,8 +2243,7 @@
           class: "btn",
           type: "button",
           onClick: async () => {
-            const base = location.href.split("#")[0];
-            const link = `${base}#/aktualnosci?post=${encodeURIComponent(p.id)}`;
+            const link = shareUrlForNews(p.id);
             const ok = await copyText(link);
             toast(ok ? "Link do posta skopiowany." : "Nie udało się skopiować linku.");
           },
@@ -2297,8 +2334,7 @@
         class: "btn",
         type: "button",
         onClick: async () => {
-          const base = location.href.split("#")[0];
-          const link = `${base}#/pomysly?punkt=${encodeURIComponent(String(p.id))}`;
+          const link = shareUrlForProgram(p.id);
           const ok = await copyText(link);
           toast(ok ? "Link do punktu skopiowany." : "Nie udało się skopiować linku.");
         },
@@ -2572,10 +2608,24 @@
       counterName: likeCounterForPoster(p.src),
       title: "Polub plakat",
     });
+    const shareBtn = el(
+      "button",
+      {
+        class: "btn",
+        type: "button",
+        onClick: async () => {
+          const link = shareUrlForPoster(p.src);
+          const ok = await copyText(link);
+          toast(ok ? "Link do plakatu skopiowany." : "Nie udało się skopiować linku.");
+        },
+      },
+      "Udostępnij"
+    );
     const metaRow = el("div", { class: "poster-meta-row" }, [
       el("span", { class: "badge", title: p.subtitle || "" }, p.subtitle || ""),
       el("div", { class: "poster-ctas" }, [
         likeBtn,
+        shareBtn,
         el(
           "a",
           { class: "btn btn-primary", href: p.src, download: "" },
@@ -3057,6 +3107,15 @@
         const pid = decodeURIComponent(m[1]);
         const p = (window.STASZEK.program || []).find((x) => String(x.id) === pid);
         if (p) setTimeout(() => openProgramModal(p), 80);
+      }
+    }
+    if (id === "plakaty" && query) {
+      const m = query.match(/(?:^|&)poster=([^&]+)/);
+      if (m) {
+        const key = decodeURIComponent(m[1]);
+        const posters = window.STASZEK?.images?.posters || [];
+        const idx = posters.findIndex((p) => posterShareId(p?.src) === key);
+        if (idx >= 0) setTimeout(() => openPoster(idx), 80);
       }
     }
     if (id === "aktualnosci" && query) {

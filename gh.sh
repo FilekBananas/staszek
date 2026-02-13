@@ -48,6 +48,15 @@ if [[ ! -d .git ]]; then
   git checkout -b "$BRANCH_MAIN"
 fi
 
+# Generate static share pages (Open Graph previews).
+if [[ -f "scripts/generate-share-pages.js" ]]; then
+  if command -v node >/dev/null 2>&1; then
+    node scripts/generate-share-pages.js
+  else
+    echo "Warning: node not found; skipping share page generation."
+  fi
+fi
+
 current_remote_url="$(git remote get-url "$REMOTE_NAME" 2>/dev/null || true)"
 if [[ -z "$current_remote_url" ]]; then
   git remote add "$REMOTE_NAME" "$REMOTE_URL"
