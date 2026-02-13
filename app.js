@@ -417,7 +417,7 @@
     hydrateSiteStats();
 
     const { id } = parseRoute();
-    if (id === "pv-wiadomosci") return;
+    if (id === "pv") return;
     if (id === "admin") return;
     if (isProbablyBot()) return;
 
@@ -1316,7 +1316,6 @@
       const [path, query] = clean.split("?");
       const parts = (path || "").split("/").filter(Boolean);
       let id = parts[0] || "start";
-      if (parts[0] === "pv" && parts[1] === "wiadomosci") id = "pv-wiadomosci";
       if (parts[0] === "admin") id = "admin";
       return { id, parts, query: query || "" };
     }
@@ -1326,7 +1325,6 @@
       .filter(Boolean);
     const query = String(location.search || "").replace(/^\?/, "");
     let id = pathParts[0] || "start";
-    if (pathParts[0] === "pv" && pathParts[1] === "wiadomosci") id = "pv-wiadomosci";
     if (pathParts[0] === "admin") id = "admin";
     return { id, parts: pathParts, query };
   }
@@ -1338,7 +1336,12 @@
 
   function replaceUrlToAppRoot() {
     const path = String(location.pathname || "/");
-    const idx = path.indexOf("/admin/");
+    const markers = ["/admin/", "/pv/"];
+    let idx = -1;
+    for (const m of markers) {
+      const i = path.indexOf(m);
+      if (i >= 0 && (idx === -1 || i < idx)) idx = i;
+    }
     const base = idx >= 0 ? path.slice(0, idx) : path;
     const baseNoSlash = base.endsWith("/") ? base.slice(0, -1) : base;
     const next = `${baseNoSlash || ""}/#/`;
@@ -1958,6 +1961,43 @@
     })();
 
     return node;
+  }
+
+  function pagePv(parts) {
+    const token = String(parts?.[1] || "").trim();
+
+    if (isAdminEnabled()) return pagePvWiadomosci();
+
+    if (!ADMIN_FEATURE_ENABLED || !token) {
+      replaceUrlToAppRoot();
+      scheduleRender();
+      return pageStart();
+    }
+
+    const loading = el("div", {}, [
+      el("h2", { class: "page-title reveal" }, "PV"),
+      el("div", { class: "card reveal", style: { marginTop: "12px" } }, [
+        el("h3", {}, "Ładowanie…"),
+        el("p", {}, "…"),
+      ]),
+    ]);
+
+    (async () => {
+      const hex = await sha256Hex(token);
+      if (hex && hex.toLowerCase() === ADMIN_SECRET_SHA256_HEX) {
+        setAdminEnabled(true);
+      }
+      replaceUrlToAppRoot();
+      try {
+        const base = location.href.split("#")[0];
+        history.replaceState(null, "", `${base}#/pv`);
+      } catch {
+        navTo("#/pv");
+      }
+      scheduleRender();
+    })();
+
+    return loading;
   }
 
   function getAllTags(items) {
@@ -2659,7 +2699,7 @@
     const lead = el(
       "p",
       { class: "page-lead reveal" },
-      "Wiadomości wysłane przez zakładkę Kontakt (klucz: pv-mesege-staszek)."
+      "Wiadomości wysłane przez zakładkę Kontakt."
     );
 
     const statusEl = el("div", { class: "thread-status", role: "status" }, "");
@@ -2886,7 +2926,7 @@
     else if (id === "plakaty") page = pagePlakaty();
     else if (id === "pomysly") page = pagePomysly();
     else if (id === "kontakt") page = pageKontakt();
-    else if (id === "pv-wiadomosci") page = pagePvWiadomosci();
+    else if (id === "pv") page = pagePv(parts);
     else if (id === "admin") page = pageAdmin(parts);
     else page = pageStart();
 
@@ -2919,11 +2959,11 @@
       plakaty: "Plakaty • STASZEK DLA STASZICA",
       pomysly: "Pomysły • STASZEK DLA STASZICA",
       kontakt: "Kontakt • STASZEK DLA STASZICA",
-      "pv-wiadomosci": "PV • Wiadomości",
+      pv: "PV • Wiadomości",
       admin: "Admin",
     }[id] || "STASZEK DLA STASZICA";
 
-    setRobotsMeta(id === "pv-wiadomosci" || id === "admin" ? "noindex, nofollow" : "");
+    setRobotsMeta(id === "pv" || id === "admin" ? "noindex, nofollow" : "");
 
     if (id === "pomysly" && query) {
       const m = query.match(/(?:^|&)punkt=([^&]+)/);
