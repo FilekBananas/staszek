@@ -1432,34 +1432,21 @@
     const mainSrc = items[0];
     const side = items.slice(1, 3);
 
-    const main = el(
-      "a",
-      {
-        class: "news-gallery-main",
-        href: mainSrc,
-        target: "_blank",
-        rel: "noopener noreferrer",
-        "aria-label": "Otwórz grafikę w nowej karcie",
-      },
-      makeImage(mainSrc, altBase ? `${altBase} — grafika 1` : "Grafika 1")
-    );
+    const main = el("div", { class: "news-gallery-main" }, [
+      makeImage(mainSrc, altBase ? `${altBase} — grafika 1` : "Grafika 1"),
+    ]);
 
     const row = side.length
       ? el(
           "div",
           { class: "news-gallery-row" },
           side.map((src, idx) =>
-            el(
-              "a",
-              {
-                class: "news-gallery-sub",
-                href: src,
-                target: "_blank",
-                rel: "noopener noreferrer",
-                "aria-label": "Otwórz grafikę w nowej karcie",
-              },
-              makeImage(src, altBase ? `${altBase} — grafika ${idx + 2}` : `Grafika ${idx + 2}`)
-            )
+            el("div", { class: "news-gallery-sub" }, [
+              makeImage(
+                src,
+                altBase ? `${altBase} — grafika ${idx + 2}` : `Grafika ${idx + 2}`
+              ),
+            ])
           )
         )
       : null;

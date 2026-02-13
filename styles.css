@@ -644,12 +644,6 @@ body {
   border-radius: calc(var(--radius) - 2px);
 }
 
-.news-gallery-main:focus-visible,
-.news-gallery-sub:focus-visible {
-  outline: 2px solid rgba(242, 196, 90, 0.62);
-  outline-offset: 4px;
-}
-
 .video {
   width: 100%;
   border-radius: calc(var(--radius) - 2px);
