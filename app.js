@@ -23,6 +23,9 @@
       el: null,
       suspendedByVideo: false,
     },
+    admin: {
+      enabled: false,
+    },
     filters: {
       aktualnosci: { search: "", tag: "" },
       pomysly: { search: "", tag: "" },
@@ -57,6 +60,9 @@
   // Tymczasowo wyłączone: baner + przycisk związany z artykułem o wykluczeniu.
   // Ustaw na `true`, żeby łatwo przywrócić.
   const APPEAL_ARTICLE_FEATURE_ENABLED = false;
+  const ADMIN_FEATURE_ENABLED = true;
+  const ADMIN_SECRET_SHA256_HEX =
+    "7b610aa182ee49fc321ce2e138e3b55365eb3e100fc7260fb079fb2246b54be5";
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
@@ -124,6 +130,30 @@
 
   function hasCookie(name) {
     return readCookie(name) !== "";
+  }
+
+  function isAdminEnabled() {
+    return ADMIN_FEATURE_ENABLED && state.admin?.enabled === true;
+  }
+
+  function setAdminEnabled(enabled) {
+    if (!state.admin) state.admin = { enabled: false };
+    state.admin.enabled = Boolean(enabled);
+  }
+
+  function bytesToHex(bytes) {
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function sha256Hex(text) {
+    try {
+      if (!window.crypto?.subtle) return "";
+      const data = new TextEncoder().encode(String(text || ""));
+      const digest = await window.crypto.subtle.digest("SHA-256", data);
+      return bytesToHex(new Uint8Array(digest));
+    } catch {
+      return "";
+    }
   }
 
   function loadLikeSet() {
@@ -234,6 +264,18 @@
         return parseBasicDbItems(text);
       })
       .catch(() => []);
+  }
+
+  function basicDbRemove(key, element) {
+    const k = encodeURIComponent(String(key || ""));
+    const e = encodeURIComponent(String(element || ""));
+    return fetch(counterUrl(`/baza-podstawowa/usun/${k}/${e}`), {
+      cache: "no-store",
+      mode: "cors",
+      keepalive: true,
+    })
+      .then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .catch(() => false);
   }
 
   function updateStatsUI() {
@@ -376,6 +418,7 @@
 
     const { id } = parseRoute();
     if (id === "pv-wiadomosci") return;
+    if (id === "admin") return;
     if (isProbablyBot()) return;
 
     let counted = false;
@@ -971,10 +1014,11 @@
           t: Number(parsed.t ?? parsed.time ?? 0) || 0,
           n: String(parsed.n ?? parsed.name ?? "").trim(),
           m: msg,
+          _raw: s,
         };
       }
     }
-    return { t: 0, n: "", m: s };
+    return { t: 0, n: "", m: s, _raw: s };
   }
 
   function formatForumTime(ms) {
@@ -1085,6 +1129,7 @@
 
           const entry = { t: Date.now(), n, m };
           const payload = JSON.stringify(entry);
+          entry._raw = payload;
 
           loading = true;
           sendBtn.disabled = true;
@@ -1147,9 +1192,45 @@
       for (const it of items) {
         const who = sanitizeForumName(it.n) || "Anonim";
         const time = formatForumTime(it.t);
+        const delBtn =
+          isAdminEnabled() && it._raw
+            ? el(
+                "button",
+                {
+                  class: "thread-del",
+                  type: "button",
+                  title: "Usuń wpis",
+                  onClick: async () => {
+                    const okConfirm = confirm(
+                      "Usunąć ten wpis? Tej operacji nie da się cofnąć."
+                    );
+                    if (!okConfirm) return;
+                    setStatus("Usuwanie…");
+                    const ok = await basicDbRemove(threadKey, it._raw);
+                    if (!ok) {
+                      setStatus("Nie udało się usunąć wpisu.", "err");
+                      setTimeout(() => setStatus(""), 2200);
+                      return;
+                    }
+                    items = items.filter((x) => x && x._raw !== it._raw);
+                    forumCache.set(threadKey, { items, at: Date.now() });
+                    render();
+                    setStatus("Usunięto.", "ok");
+                    setTimeout(() => setStatus(""), 1800);
+                  },
+                },
+                "Usuń"
+              )
+            : null;
+
+        const right = el("div", { class: "thread-item-tools" }, [
+          time ? el("span", { class: "thread-time" }, time) : null,
+          delBtn,
+        ]);
+
         const head = el("div", { class: "thread-item-head" }, [
           el("strong", { class: "thread-name" }, who),
-          time ? el("span", { class: "thread-time" }, time) : null,
+          right,
         ]);
         const msg = el("div", { class: "thread-msg" }, it.m);
         listEl.appendChild(el("div", { class: "thread-item" }, [head, msg]));
@@ -1236,6 +1317,7 @@
       const parts = (path || "").split("/").filter(Boolean);
       let id = parts[0] || "start";
       if (parts[0] === "pv" && parts[1] === "wiadomosci") id = "pv-wiadomosci";
+      if (parts[0] === "admin") id = "admin";
       return { id, parts, query: query || "" };
     }
 
@@ -1245,12 +1327,26 @@
     const query = String(location.search || "").replace(/^\?/, "");
     let id = pathParts[0] || "start";
     if (pathParts[0] === "pv" && pathParts[1] === "wiadomosci") id = "pv-wiadomosci";
+    if (pathParts[0] === "admin") id = "admin";
     return { id, parts: pathParts, query };
   }
 
   function navTo(hash) {
     if (location.hash === hash) return;
     location.hash = hash;
+  }
+
+  function replaceUrlToAppRoot() {
+    const path = String(location.pathname || "/");
+    const idx = path.indexOf("/admin/");
+    const base = idx >= 0 ? path.slice(0, idx) : path;
+    const baseNoSlash = base.endsWith("/") ? base.slice(0, -1) : base;
+    const next = `${baseNoSlash || ""}/#/`;
+    try {
+      history.replaceState(null, "", next);
+    } catch {
+      navTo("#/");
+    }
   }
 
   function scheduleRender(nextRestoreFocus = null) {
@@ -1840,6 +1936,28 @@
       staffSection,
       forumSection,
     ]);
+  }
+
+  function pageAdmin(parts) {
+    const token = String(parts?.[1] || "").trim();
+    const node = pageStart();
+    if (!ADMIN_FEATURE_ENABLED || !token) {
+      replaceUrlToAppRoot();
+      scheduleRender();
+      return node;
+    }
+
+    (async () => {
+      const hex = await sha256Hex(token);
+      if (hex && hex.toLowerCase() === ADMIN_SECRET_SHA256_HEX) {
+        setAdminEnabled(true);
+        toast("Tryb admin włączony.");
+      }
+      replaceUrlToAppRoot();
+      scheduleRender();
+    })();
+
+    return node;
   }
 
   function getAllTags(items) {
@@ -2769,6 +2887,7 @@
     else if (id === "pomysly") page = pagePomysly();
     else if (id === "kontakt") page = pageKontakt();
     else if (id === "pv-wiadomosci") page = pagePvWiadomosci();
+    else if (id === "admin") page = pageAdmin(parts);
     else page = pageStart();
 
     content.appendChild(page);
@@ -2801,9 +2920,10 @@
       pomysly: "Pomysły • STASZEK DLA STASZICA",
       kontakt: "Kontakt • STASZEK DLA STASZICA",
       "pv-wiadomosci": "PV • Wiadomości",
+      admin: "Admin",
     }[id] || "STASZEK DLA STASZICA";
 
-    setRobotsMeta(id === "pv-wiadomosci" ? "noindex, nofollow" : "");
+    setRobotsMeta(id === "pv-wiadomosci" || id === "admin" ? "noindex, nofollow" : "");
 
     if (id === "pomysly" && query) {
       const m = query.match(/(?:^|&)punkt=([^&]+)/);

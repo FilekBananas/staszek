@@ -1031,6 +1031,28 @@ body {
   margin-bottom: 6px;
 }
 
+.thread-item-tools {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.thread-del {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(198, 38, 46, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thread-del:hover {
+  background: rgba(198, 38, 46, 0.26);
+  border-color: rgba(198, 38, 46, 0.35);
+}
+
 .thread-time {
   font-size: 12px;
   color: var(--muted);
