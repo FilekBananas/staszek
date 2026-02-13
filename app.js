@@ -1722,8 +1722,58 @@
     const ig = "https://www.instagram.com/tomaszewski_2026/";
     const creatorUrl = "https://filip.biskupski.site/from/staszek-dla-staszica";
     const staffLinks = window.STASZEK?.staffLinks || {};
+    const latestPost = (window.STASZEK?.news || [])[0] || null;
     const analysisPost = APPEAL_ARTICLE_FEATURE_ENABLED
       ? (window.STASZEK?.news || []).find((p) => p && p.id === "post-analiza-wykluczenie")
+      : null;
+
+    const latestPreview = latestPost
+      ? (() => {
+          const id = String(latestPost.id || "").trim();
+          const titleText = String(latestPost.title || "Post").trim() || "Post";
+          const href = `#/aktualnosci?post=${encodeURIComponent(id)}`;
+          const tags = (latestPost.tags || []).slice(0, 2).map((t) =>
+            el("span", { class: "badge" }, `#${t}`)
+          );
+          const mediaSrc =
+            (Array.isArray(latestPost.images) && latestPost.images[0]) ||
+            latestPost.image ||
+            "";
+          const snippet = (() => {
+            const s = String(latestPost.body || "").replace(/\s+/g, " ").trim();
+            if (!s) return "";
+            return s.length > 180 ? `${s.slice(0, 180).trimEnd()}…` : s;
+          })();
+
+          return el(
+            "a",
+            {
+              class: "card reveal latest-post",
+              href,
+              "aria-label": `Otwórz najnowszy post: ${titleText}`,
+            },
+            [
+              el("div", { class: "latest-post-inner" }, [
+                mediaSrc
+                  ? el("div", { class: "latest-post-thumb" }, makeImage(mediaSrc, titleText))
+                  : null,
+                el("div", { class: "latest-post-content" }, [
+                  el("div", { class: "meta-row latest-post-meta" }, [
+                    el("span", { class: "badge accent" }, "Najnowszy post"),
+                    ...tags,
+                    el("span", { style: { flex: "1" } }),
+                    latestPost.date
+                      ? el("span", { class: "post-date" }, formatDate(latestPost.date))
+                      : null,
+                    el("span", { class: "badge" }, "Otwórz →"),
+                  ]),
+                  el("h3", { class: "latest-post-title" }, titleText),
+                  snippet ? el("p", { class: "latest-post-snippet" }, snippet) : null,
+                ]),
+              ]),
+            ]
+          );
+        })()
       : null;
 
     const banner = APPEAL_ARTICLE_FEATURE_ENABLED
@@ -1965,6 +2015,7 @@
     ]);
 
     return el("div", {}, [
+      latestPreview,
       banner,
       hero,
       statsBoxes,

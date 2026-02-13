@@ -917,6 +917,71 @@ body {
   margin-bottom: 8px;
 }
 
+.latest-post {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 14px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.latest-post:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.latest-post:active {
+  transform: translateY(0);
+}
+
+.latest-post:focus-visible {
+  outline: 2px solid rgba(242, 196, 90, 0.55);
+  outline-offset: 2px;
+}
+
+.latest-post-inner {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .latest-post-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.latest-post-thumb .image {
+  aspect-ratio: 16 / 10;
+}
+
+.latest-post-thumb .image img {
+  height: 100%;
+  object-fit: cover;
+}
+
+.latest-post-meta {
+  margin-top: 0;
+}
+
+.latest-post-title {
+  margin-top: 10px;
+}
+
+.latest-post-snippet {
+  margin-top: 8px;
+  line-height: 1.55;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .like-appeal {
   flex: 1 1 260px;
   justify-content: space-between;
