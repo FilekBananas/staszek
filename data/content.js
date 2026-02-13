@@ -242,7 +242,7 @@ Capisci?????🇮🇹
     "Szymon Kaczkowski": "https://www.facebook.com/fitmatelindo12",
   };
 
-  const news = [
+	  const news = [
     /*
     {
       id: "post-analiza-wykluczenie",
@@ -285,11 +285,42 @@ Kara w postaci wykluczenia z wyborów jest w tej sytuacji nieproporcjonalna do z
 
 W świetle powyższego decyzja powinna zostać ponownie przeanalizowana przez Dyrekcję szkoły, a jej wykonanie wstrzymane do czasu wyjaśnienia wątpliwości prawnych.`,
     },
-    */
-    /*
-    {
-      id: "post-paczki-quiz",
-      title: "Test wiedzy o pączkach — Giovedì Grasso",
+	    */
+	    {
+	      id: "post-nie-tym-razem",
+	      title: "Nie tym razem.",
+	      date: "",
+	      images: [
+	        "zdjęcia/can't_hurt_me.jpeg",
+	        "zdjęcia/szach_Mat.jpeg",
+	        "zdjęcia/Nie_tym_razem.jpeg",
+	      ],
+	      tags: ["oświadczenie", "wybory"],
+	      body: `THEY TRIED TO BURY ME. THEY DIDN’T KNOW I WAS A SEED
+
+Myśleliście że usuniecie mnie jednym wadliwym pismem i będzie po sprawie???
+
+BŁĄD
+
+Wasza decyzja to najzwyklejsza cenzura prewencyjna. Łamiecie w biały dzień Konstytucję RP, naruszacie Kodeks Cywilny i depczecie Statut Szkoły.
+
+Poza tym, przestańcie udawać bezstronnych. Wszyscy wiemy że część trybunału siedzi w sztabach moich kontrkandydatów.
+
+To nie był sąd, tylko żałosna ustawka celem pozbycia się niewygodnego kandydata.
+
+To najzwyklejszy konflikt interesów !!!
+
+Oficjalne pismo przedsądowe wylądowało dzisiaj na biurku Pani Dyrektor. Każdy wasz żałosny błąd proceduralny został tam wypunktowany.
+
+Chcieliście wojny na paragrafy to ją macie.
+Zabawa dopiero się zaczyna🔥🔥🔥
+
+Czyżby zbliżał się czas żeby Stowarzyszenie Umarłych Statutów przyjrzało się temu cyrkowi z bliska????🤫🤫`,
+	    },
+	    /*
+	    {
+	      id: "post-paczki-quiz",
+	      title: "Test wiedzy o pączkach — Giovedì Grasso",
       date: "",
       image: "zdjęcia/paczki_test_wiedzy.jpeg",
       tags: ["quiz", "pączki", "tłusty czwartek"],

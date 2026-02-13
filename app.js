@@ -1421,6 +1421,52 @@
     return wrap;
   }
 
+  function makeNewsGallery(images, altBase) {
+    const items = (Array.isArray(images) ? images : [])
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
+
+    if (!items.length) return null;
+    if (items.length === 1) return makeImage(items[0], altBase || "Grafika");
+
+    const mainSrc = items[0];
+    const side = items.slice(1, 3);
+
+    const main = el(
+      "a",
+      {
+        class: "news-gallery-main",
+        href: mainSrc,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        "aria-label": "Otwórz grafikę w nowej karcie",
+      },
+      makeImage(mainSrc, altBase ? `${altBase} — grafika 1` : "Grafika 1")
+    );
+
+    const row = side.length
+      ? el(
+          "div",
+          { class: "news-gallery-row" },
+          side.map((src, idx) =>
+            el(
+              "a",
+              {
+                class: "news-gallery-sub",
+                href: src,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                "aria-label": "Otwórz grafikę w nowej karcie",
+              },
+              makeImage(src, altBase ? `${altBase} — grafika ${idx + 2}` : `Grafika ${idx + 2}`)
+            )
+          )
+        )
+      : null;
+
+    return el("div", { class: "news-gallery" }, [main, row].filter(Boolean));
+  }
+
   function makeVideo(src, poster, title) {
     const wrap = el("div", { class: "video" });
     const video = el("video", {
@@ -2164,9 +2210,11 @@
           : null,
         p.video
           ? makeVideo(p.video, p.image || "", p.title || "Wideo")
-          : p.image
-            ? makeImage(p.image, p.title || "Grafika posta")
-            : null,
+          : Array.isArray(p.images) && p.images.length
+            ? makeNewsGallery(p.images, p.title || "Grafika posta")
+            : p.image
+              ? makeImage(p.image, p.title || "Grafika posta")
+              : null,
         renderRichText(p.body || ""),
         el("div", { class: "meta-row" }, [
           ...tagBadges,
