@@ -242,7 +242,7 @@ Capisci?????🇮🇹
     "Szymon Kaczkowski": "https://www.facebook.com/fitmatelindo12",
   };
 
-	  const news = [
+  const news = [
     /*
     {
       id: "post-analiza-wykluczenie",
@@ -286,6 +286,44 @@ Kara w postaci wykluczenia z wyborów jest w tej sytuacji nieproporcjonalna do z
 W świetle powyższego decyzja powinna zostać ponownie przeanalizowana przez Dyrekcję szkoły, a jej wykonanie wstrzymane do czasu wyjaśnienia wątpliwości prawnych.`,
     },
 	    */
+      {
+        id: "post-podsumowanie-staszic-wybory",
+        title: "Podsumowanie sprawy — Staszic Wybory",
+        date: "",
+        images: ["zdjęcia/podsomowanie1.jpeg", "zdjęcia/podsomowanie2.jpeg"],
+        tags: ["podsumowanie", "wybory"],
+        body: `Podsumowanie sprawy przygotowane przez grupę Staszic Wybory (@staszic.wybory).
+
+Instagram: https://www.instagram.com/staszic.wybory/`,
+      },
+      {
+        id: "post-debata-przesunieta",
+        title: "Debata przesunięta",
+        date: "",
+        images: [
+          "zdjęcia/napoleon.jpeg",
+          "zdjęcia/debata_przełożona-mamy-to.jpeg",
+        ],
+        tags: ["oświadczenie", "wybory", "debata"],
+        body: `CIRCUMSTANCES? I MAKE CIRCUMSTANCES” — Napoleon Bonaparte 🇫🇷
+
+DEBATA PRZESUNIĘTA 🔥🔥
+
+Wystarczył mi jeden wieczór i znajomość Statutu, by zatrzymać całą machinę wyborczą.
+
+Dyrekcja oficjalnie wstrzymała debatę do czasu wyjaśnienia sprawy.
+To jednoznaczny dowód na to, że prawo jest po mojej stronie.
+To dopiero początek „lore” mojej kampanii.
+Skoro potrafię w jeden wieczór, jednym pismem zablokować wybory, by walczyć o sprawiedliwość, wyobraźcie sobie tylko jak skutecznie będę walczył o Wasze sprawy jako Prezydent.
+
+Wyjazdy? Erasmus?
+To będzie czysta formalność.
+
+Nie potrzebujecie kandydata, który tylko ładnie się uśmiecha. Potrzebujecie kogoś, kto nie boi się użyć każdego dostępnego narzędzia, żeby zrealizować swoje pomysły i bronić Waszych interesów.
+
+Głosujcie mądrze
+Głosujcie na skuteczność🔥🔥`,
+      },
 	    {
 	      id: "post-nie-tym-razem",
 	      title: "Nie tym razem.",

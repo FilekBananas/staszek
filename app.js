@@ -6,6 +6,7 @@
       views: null,
       visitors: null,
       vote: null,
+      exonerate: null,
     },
     ui: {
       statsBoxesActivated: false,
@@ -24,7 +25,7 @@
       suspendedByVideo: false,
     },
     admin: {
-      enabled: false,
+      token: "",
     },
     filters: {
       aktualnosci: { search: "", tag: "" },
@@ -47,9 +48,12 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  const COUNTER_HOST = "licznik-794170040235.europe-central2.run.app";
-  const COUNTER_BASE = `${location.protocol === "http:" ? "http" : "https"}://${COUNTER_HOST}`;
-  const COUNTER_API_KEY = "jDIw(@#wdF2r4";
+  const API_BASE = (() => {
+    const meta = document.querySelector('meta[name="staszek-api-base"]');
+    const raw = String(meta?.getAttribute("content") || "").trim();
+    const v = raw || "/api";
+    return v.endsWith("/") ? v.slice(0, -1) : v;
+  })();
 
   const COUNTER_SITE_VIEWS = "staszek-views";
   const COUNTER_SITE_VISITORS = "staszek-visitors";
@@ -61,8 +65,7 @@
   // Ustaw na `true`, żeby łatwo przywrócić.
   const APPEAL_ARTICLE_FEATURE_ENABLED = false;
   const ADMIN_FEATURE_ENABLED = true;
-  const ADMIN_SECRET_SHA256_HEX =
-    "7b610aa182ee49fc321ce2e138e3b55365eb3e100fc7260fb079fb2246b54be5";
+  const ADMIN_TOKEN_STORAGE_KEY = "staszek_admin_token";
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
@@ -133,27 +136,64 @@
   }
 
   function isAdminEnabled() {
-    return ADMIN_FEATURE_ENABLED && state.admin?.enabled === true;
+    return ADMIN_FEATURE_ENABLED && Boolean(state.admin?.token);
   }
 
-  function setAdminEnabled(enabled) {
-    if (!state.admin) state.admin = { enabled: false };
-    state.admin.enabled = Boolean(enabled);
-  }
-
-  function bytesToHex(bytes) {
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-  }
-
-  async function sha256Hex(text) {
+  function loadAdminToken() {
     try {
-      if (!window.crypto?.subtle) return "";
-      const data = new TextEncoder().encode(String(text || ""));
-      const digest = await window.crypto.subtle.digest("SHA-256", data);
-      return bytesToHex(new Uint8Array(digest));
+      return String(localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || "").trim();
     } catch {
       return "";
     }
+  }
+
+  function setAdminToken(token) {
+    const t = String(token || "").trim();
+    if (!state.admin) state.admin = { token: "" };
+    state.admin.token = t;
+    try {
+      if (t) localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, t);
+      else localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+    } catch {}
+  }
+
+  function restoreAdminSessionFromStorage() {
+    if (!ADMIN_FEATURE_ENABLED) return;
+    const token = loadAdminToken();
+    if (token) setAdminToken(token);
+  }
+
+  function authHeaders() {
+    if (!isAdminEnabled()) return {};
+    return { Authorization: `Bearer ${state.admin.token}` };
+  }
+
+  let adminSessionCheckedAt = 0;
+  let adminSessionCheckPending = false;
+  function ensureAdminSessionValid() {
+    if (!isAdminEnabled()) return;
+    if (adminSessionCheckPending) return;
+    const now = Date.now();
+    if (adminSessionCheckedAt && now - adminSessionCheckedAt < 8000) return;
+
+    adminSessionCheckPending = true;
+    fetch(counterUrl("/admin/me"), {
+      cache: "no-store",
+      mode: "cors",
+      headers: authHeaders(),
+    })
+      .then((r) => {
+        adminSessionCheckedAt = Date.now();
+        adminSessionCheckPending = false;
+        if (r.ok) return;
+        setAdminToken("");
+        toast("Sesja admin wygasła albo ktoś zalogował się gdzie indziej.");
+        scheduleRender();
+      })
+      .catch(() => {
+        adminSessionCheckedAt = Date.now();
+        adminSessionCheckPending = false;
+      });
   }
 
   function loadLikeSet() {
@@ -185,15 +225,13 @@
   }
 
   function counterUrl(path) {
-    const url = `${COUNTER_BASE}${path}`;
-    if (!COUNTER_API_KEY) return url;
-    const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}key=${encodeURIComponent(COUNTER_API_KEY)}`;
+    return `${API_BASE}${path}`;
   }
 
   function parseCounterValue(text) {
     const n = Number.parseInt(String(text || "").trim(), 10);
-    return Number.isFinite(n) ? n : null;
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, n);
   }
 
   function safeJsonParse(text) {
@@ -206,7 +244,12 @@
 
   function getCounter(counterName) {
     const name = encodeURIComponent(String(counterName || ""));
-    return fetch(counterUrl(`/ile/${name}`), { cache: "no-store", mode: "cors" })
+    const headers = isAdminEnabled() ? authHeaders() : {};
+    return fetch(counterUrl(`/ile/${name}`), {
+      cache: "no-store",
+      mode: "cors",
+      headers,
+    })
       .then((r) => r.text())
       .then(parseCounterValue)
       .catch(() => null);
@@ -226,6 +269,75 @@
       .catch(() => null);
   }
 
+  function handleAdminAuthFail(status) {
+    if (status !== 401 && status !== 403) return;
+    if (!isAdminEnabled()) return;
+    setAdminToken("");
+    toast("Sesja admin wygasła albo ktoś zalogował się gdzie indziej.");
+    scheduleRender();
+  }
+
+  async function adminReset(name) {
+    const n = encodeURIComponent(String(name || ""));
+    try {
+      const r = await fetch(counterUrl(`/wyzeruj/${n}`), {
+        cache: "no-store",
+        mode: "cors",
+        headers: authHeaders(),
+      });
+      if (!r.ok) {
+        handleAdminAuthFail(r.status);
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function adminAddCounter(counterName, delta) {
+    const name = encodeURIComponent(String(counterName || ""));
+    const parsed = Number.parseInt(String(delta), 10);
+    const d = Number.isFinite(parsed) ? parsed : 0;
+    if (d < 0) return null;
+
+    try {
+      const r = await fetch(counterUrl(`/dodaj/${name}/${d}`), {
+        cache: "no-store",
+        mode: "cors",
+        headers: authHeaders(),
+      });
+      const text = await r.text().catch(() => "");
+      if (!r.ok) {
+        handleAdminAuthFail(r.status);
+        return null;
+      }
+      return parseCounterValue(text);
+    } catch {
+      return null;
+    }
+  }
+
+  async function adminSetCounterValue(counterName, value) {
+    const v = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(v) || v < 0) return null;
+
+    const okZero = await adminReset(counterName);
+    if (!okZero) return null;
+    if (v === 0) return 0;
+
+    let remaining = v;
+    let last = null;
+    while (remaining > 0) {
+      const chunk = Math.min(remaining, 1_000_000);
+      // eslint-disable-next-line no-await-in-loop
+      last = await adminAddCounter(counterName, chunk);
+      if (typeof last !== "number") return null;
+      remaining -= chunk;
+    }
+    return last;
+  }
+
   function parseBasicDbItems(text) {
     const parsed = safeJsonParse(text);
     if (Array.isArray(parsed)) return parsed.map((x) => String(x));
@@ -240,16 +352,26 @@
       .filter(Boolean);
   }
 
-  function basicDbAdd(key, element) {
+  async function basicDbAdd(key, element) {
     const k = encodeURIComponent(String(key || ""));
     const e = encodeURIComponent(String(element || ""));
-    return fetch(counterUrl(`/baza-podstawowa/dodaj/${k}/${e}`), {
-      cache: "no-store",
-      mode: "cors",
-      keepalive: true,
-    })
-      .then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .catch(() => false);
+    try {
+      const r = await fetch(counterUrl(`/baza-podstawowa/dodaj/${k}/${e}`), {
+        cache: "no-store",
+        mode: "cors",
+        keepalive: true,
+        headers: authHeaders(),
+      });
+      const text = await r.text().catch(() => "");
+      const hint = String(r.headers.get("x-hint") || "").trim();
+      if (r.ok) return { ok: true, status: r.status, text, hint };
+      const json = safeJsonParse(text);
+      const error = json?.error ? String(json.error) : "";
+      const retryAfter = Number(json?.retry_after) || 0;
+      return { ok: false, status: r.status, error, retryAfter, text, hint };
+    } catch (e) {
+      return { ok: false, status: 0, error: "fetch_failed", retryAfter: 0, text: "", hint: "" };
+    }
   }
 
   function basicDbRead(key) {
@@ -257,10 +379,16 @@
     return fetch(counterUrl(`/baza-podstawowa/odczyt/${k}?format=json`), {
       cache: "no-store",
       mode: "cors",
+      headers: authHeaders(),
     })
       .then((r) => r.text().then((t) => ({ ok: r.ok, status: r.status, text: t })))
       .then(({ ok, status, text }) => {
-        if (!ok) throw new Error(`HTTP ${status}`);
+        if (!ok) {
+          if (status === 401 || status === 403) {
+            if (isAdminEnabled()) setAdminToken("");
+          }
+          throw new Error(`HTTP ${status}`);
+        }
         return parseBasicDbItems(text);
       })
       .catch(() => []);
@@ -273,6 +401,7 @@
       cache: "no-store",
       mode: "cors",
       keepalive: true,
+      headers: authHeaders(),
     })
       .then((r) => (r.ok ? true : Promise.reject(new Error(`HTTP ${r.status}`))))
       .catch(() => false);
@@ -406,20 +535,26 @@
         updateStatsUI();
       }
     });
+    getCounter(COUNTER_SITE_EXONERATE).then((v) => {
+      if (typeof v === "number") {
+        state.stats.exonerate = v;
+      }
+    });
   }
 
   let statsInitialized = false;
-  function initSiteStats() {
-    if (statsInitialized) return;
-    statsInitialized = true;
+	  function initSiteStats() {
+	    if (statsInitialized) return;
+	    statsInitialized = true;
 
-    // Always show current numbers (even if we decide not to count this visit).
-    hydrateSiteStats();
+	    // Always show current numbers (even if we decide not to count this visit).
+	    hydrateSiteStats();
 
-    const { id } = parseRoute();
-    if (id === "pv") return;
-    if (id === "admin") return;
-    if (isProbablyBot()) return;
+	    const { id } = parseRoute();
+	    if (id === "pv") return;
+	    if (id === "admin") return;
+	    if (id === "test") return;
+	    if (isProbablyBot()) return;
 
     let counted = false;
     let timer = 0;
@@ -1139,13 +1274,27 @@
           refreshBtn.disabled = true;
           setStatus("Wysyłanie…");
 
-          const ok = await basicDbAdd(threadKey, payload);
+          const r = await basicDbAdd(threadKey, payload);
           loading = false;
           sendBtn.disabled = false;
           refreshBtn.disabled = false;
 
-          if (!ok) {
-            setStatus("Nie udało się dodać wpisu. Spróbuj ponownie.", "err");
+          if (!r.ok) {
+            const code = String(r.error || "");
+            const wait = Number(r.retryAfter) || 0;
+            let msg = "Nie udało się dodać wpisu. Spróbuj ponownie.";
+            if (code === "rate_limited" && wait) msg = `Za dużo żądań. Poczekaj ${wait}s.`;
+            else if (r.status === 429 && wait) msg = `Za dużo żądań. Poczekaj ${wait}s.`;
+            else if (code === "comment_rejected") msg = "Wpis odrzucony przez moderację.";
+            else if (code === "moderation_unavailable") {
+              msg = "Moderacja chwilowo niedostępna. Spróbuj później.";
+              if (r.hint) msg = `${msg} (${r.hint})`;
+            } else if (code === "ip_banned") msg = "Nie możesz publikować z tego IP (ban).";
+            else if (code === "admin_required") msg = "Brak uprawnień.";
+            else if (code === "payload_too_large") msg = "Wpis jest za długi.";
+            else if (code === "fetch_failed") msg = "Błąd sieci. Sprawdź połączenie i spróbuj ponownie.";
+
+            setStatus(msg, "err");
             return;
           }
 
@@ -1154,10 +1303,7 @@
           } catch {}
 
           msgInput.value = "";
-          if (!loaded) loaded = true;
-          items = [entry, ...items].slice(0, 200);
-          forumCache.set(threadKey, { items, at: Date.now() });
-          render();
+          await load(true);
           setStatus("Dodano.", "ok");
           setTimeout(() => setStatus(""), 1800);
         },
@@ -2067,62 +2213,533 @@
   }
 
   function pageAdmin(parts) {
-    const token = String(parts?.[1] || "").trim();
-    const node = pageStart();
-    if (!ADMIN_FEATURE_ENABLED || !token) {
-      replaceUrlToAppRoot();
-      scheduleRender();
-      return node;
-    }
-
-    (async () => {
-      const hex = await sha256Hex(token);
-      if (hex && hex.toLowerCase() === ADMIN_SECRET_SHA256_HEX) {
-        setAdminEnabled(true);
-        toast("Tryb admin włączony.");
-      }
-      replaceUrlToAppRoot();
-      scheduleRender();
-    })();
-
-    return node;
-  }
-
-  function pagePv(parts) {
-    const token = String(parts?.[1] || "").trim();
-
-    if (isAdminEnabled()) return pagePvWiadomosci();
-
-    if (!ADMIN_FEATURE_ENABLED || !token) {
+    if (!ADMIN_FEATURE_ENABLED) {
       replaceUrlToAppRoot();
       scheduleRender();
       return pageStart();
     }
 
-    const loading = el("div", {}, [
+    if (isAdminEnabled()) {
+      ensureAdminSessionValid();
+      const title = el("h2", { class: "page-title reveal" }, "Admin");
+      const lead = el(
+        "p",
+        { class: "page-lead reveal" },
+        "Moderacja komentarzy + podgląd PV. Jesteś zalogowany."
+      );
+
+      const scrollToEl = (id) => {
+        const node = document.getElementById(String(id || ""));
+        if (!node) return;
+        try {
+          node.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          node.scrollIntoView();
+        }
+      };
+
+      const adminCard = el("section", { class: "card reveal" }, [
+        el("div", { class: "post-title" }, [
+          el("h3", {}, "Panel admina"),
+          el("span", { class: "badge ok" }, "Aktywny"),
+        ]),
+        el("p", {}, "Możesz usuwać wpisy w dyskusjach oraz przeglądać wiadomości z Kontaktu (PV)."),
+        el("div", { class: "meta-row" }, [
+          el("a", { class: "btn btn-primary", href: "#/pv" }, "PV • Wiadomości"),
+          el(
+            "button",
+            { class: "btn", type: "button", onClick: () => scrollToEl("adminCounters") },
+            "Liczniki"
+          ),
+          el(
+            "button",
+            { class: "btn", type: "button", onClick: () => scrollToEl("adminTools") },
+            "Narzędzia"
+          ),
+          el("a", { class: "btn", href: "#/test" }, "Test / Diagnostyka"),
+          el("a", { class: "btn", href: "#/" }, "Start"),
+          el(
+            "button",
+            {
+              class: "btn",
+              type: "button",
+              onClick: async () => {
+                try {
+                  await fetch(counterUrl("/admin/logout"), {
+                    method: "POST",
+                    headers: { ...authHeaders(), "content-type": "application/json" },
+                  });
+                } catch {}
+                setAdminToken("");
+                toast("Wylogowano.");
+                scheduleRender();
+              },
+            },
+            "Wyloguj"
+          ),
+        ]),
+      ]);
+
+      // Stats (reuse the same IDs as on start page so updateStatsUI() works).
+      const statsBoxes = el("section", { class: "stats-grid", style: { marginTop: "14px" } }, [
+        el("div", { class: "card reveal stat" }, [
+          el("div", { class: "stat-value" }, [
+            el("span", { class: "stat-number", id: "statVisitorsBox", "data-loading": "1" }, "…"),
+          ]),
+          el("div", { class: "stat-label" }, "Osoby, które odwiedziły stronę"),
+        ]),
+        el("div", { class: "card reveal stat" }, [
+          el("div", { class: "stat-value" }, [
+            el("span", { class: "stat-number", id: "statViewsBox", "data-loading": "1" }, "…"),
+          ]),
+          el("div", { class: "stat-label" }, "Wyświetlenia strony"),
+        ]),
+        el("div", { class: "card reveal stat", id: "statVoteCard", hidden: true }, [
+          el("div", { class: "stat-value" }, [
+            el("span", { class: "stat-number", id: "statVoteBox", "data-loading": "1" }, "…"),
+          ]),
+          el("div", { class: "stat-label" }, "Deklaracje: „Głosuję na Staśka”"),
+        ]),
+      ]);
+      state.ui.statsBoxesActivated = false;
+      setupLazyStatsBoxes(statsBoxes);
+
+      const threadTitle = el("h3", {}, "Moderacja komentarzy");
+      const threadLead = el(
+        "p",
+        {},
+        "Wybierz wątek i usuń niechciane wpisy. Dyskusje ładują się dopiero po wybraniu."
+      );
+
+      const threads = [];
+      threads.push({
+        group: "Forum",
+        label: "Forum (strona główna)",
+        key: FORUM_SITE_KEY,
+        placeholder: "Napisz na forum…",
+        openHash: "#/",
+      });
+
+      for (const p of Array.from(window.STASZEK?.news || [])) {
+        const id = String(p?.id || "").trim();
+        if (!id) continue;
+        threads.push({
+          group: "Aktualności",
+          label: String(p?.title || "Post").trim() || "Post",
+          key: forumKeyForNews(id),
+          placeholder: "Napisz komentarz do posta…",
+          openHash: `#/aktualnosci?post=${encodeURIComponent(id)}`,
+        });
+      }
+
+      for (const p of Array.from(window.STASZEK?.program || [])) {
+        const pid = String(p?.id ?? "").trim();
+        if (!pid) continue;
+        const titleText = String(p?.title || "Punkt programu").trim() || "Punkt programu";
+        threads.push({
+          group: "Pomysły / Program",
+          label: `${pid}. ${titleText}`,
+          key: forumKeyForProgram(pid),
+          placeholder: "Napisz komentarz do punktu programu…",
+          openHash: `#/pomysly?punkt=${encodeURIComponent(pid)}`,
+        });
+      }
+
+      for (const p of Array.from(window.STASZEK?.images?.posters || [])) {
+        const src = String(p?.src || "").trim();
+        if (!src) continue;
+        const titleText = String(p?.title || "Plakat").trim() || "Plakat";
+        const posterId = posterShareId(src);
+        threads.push({
+          group: "Plakaty",
+          label: titleText,
+          key: forumKeyForPoster(src),
+          placeholder: "Napisz komentarz do plakatu…",
+          openHash: `#/plakaty?poster=${encodeURIComponent(posterId)}`,
+        });
+      }
+
+      const allThreadKeys = Array.from(new Set(threads.map((t) => String(t.key || "")).filter(Boolean)));
+
+      const toolsStatus = el("div", { class: "thread-status", role: "status" }, "");
+      const resetCommentsBtn = el(
+        "button",
+        {
+          class: "btn btn-primary",
+          type: "button",
+          onClick: async () => {
+            const okConfirm = confirm(
+              `Wyczyścić wszystkie dyskusje?\n\nWątki: ${allThreadKeys.length}\n\nTej operacji nie da się cofnąć.`
+            );
+            if (!okConfirm) return;
+
+            resetCommentsBtn.disabled = true;
+            toolsStatus.dataset.kind = "";
+            toolsStatus.textContent = "Czyszczenie…";
+
+            let okCount = 0;
+            let failCount = 0;
+            for (const k of allThreadKeys) {
+              // eslint-disable-next-line no-await-in-loop
+              const ok = await adminReset(k);
+              if (ok) okCount++;
+              else failCount++;
+            }
+
+            try {
+              forumCache.clear();
+            } catch {}
+
+            resetCommentsBtn.disabled = false;
+            toolsStatus.dataset.kind = failCount ? "warn" : "ok";
+            toolsStatus.textContent = failCount
+              ? `Wyczyściliśmy: ${okCount}. Błędy: ${failCount}.`
+              : `Wyczyściliśmy wszystkie dyskusje (${okCount}).`;
+          },
+        },
+        "Wyczyść wszystkie dyskusje"
+      );
+
+      const toolsCard = el("section", { class: "card reveal", id: "adminTools" }, [
+        el("h3", {}, "Narzędzia"),
+        el("p", {}, "Operacje administracyjne: czyszczenie dyskusji i ustawianie liczników."),
+        el("div", { class: "meta-row" }, [resetCommentsBtn]),
+        toolsStatus,
+      ]);
+
+      const countersStatus = el("div", { class: "thread-status", role: "status" }, "");
+      const currentRow = el("div", { class: "meta-row", style: { marginTop: "10px" } }, [
+        el("span", { class: "badge" }, `Wyświetlenia: ${formatNumber(state.stats.views)}`),
+        el("span", { class: "badge" }, `Osoby: ${formatNumber(state.stats.visitors)}`),
+        el("span", { class: "badge" }, `Deklaracje: ${formatNumber(state.stats.vote)}`),
+      ]);
+
+      const refreshBtn = el(
+        "button",
+        {
+          class: "btn",
+          type: "button",
+          onClick: () => {
+            hydrateSiteStats();
+            toast("Odświeżono liczniki.");
+            scheduleRender();
+          },
+        },
+        "Odśwież"
+      );
+
+      const viewsInput = el("input", {
+        class: "thread-input",
+        type: "number",
+        min: "0",
+        step: "1",
+        placeholder: "Wyświetlenia strony",
+        "aria-label": "Ustaw wyświetlenia strony",
+      });
+      const visitorsInput = el("input", {
+        class: "thread-input",
+        type: "number",
+        min: "0",
+        step: "1",
+        placeholder: "Osoby, które odwiedziły stronę",
+        "aria-label": "Ustaw osoby, które odwiedziły stronę",
+      });
+      const voteInput = el("input", {
+        class: "thread-input",
+        type: "number",
+        min: "0",
+        step: "1",
+        placeholder: "Deklaracje: „Głosuję na Staśka”",
+        "aria-label": "Ustaw deklaracje głosuję na Staśka",
+      });
+      const exonerateInput = el("input", {
+        class: "thread-input",
+        type: "number",
+        min: "0",
+        step: "1",
+        placeholder: "Uniewinnić (licznik)",
+        "aria-label": "Ustaw licznik uniewinnić",
+      });
+
+      const customNameInput = el("input", {
+        class: "thread-input",
+        placeholder: "Dowolny licznik (np. like-news-...)",
+        autocomplete: "off",
+        "aria-label": "Nazwa licznika",
+      });
+      const customValueInput = el("input", {
+        class: "thread-input",
+        type: "number",
+        min: "0",
+        step: "1",
+        placeholder: "Wartość",
+        "aria-label": "Wartość licznika",
+      });
+
+      function isValidCounterName(name) {
+        const s = String(name || "").trim();
+        if (!s || s.length > 128) return false;
+        return /^[a-zA-Z0-9][a-zA-Z0-9-_]{0,127}$/.test(s);
+      }
+
+      const countersForm = el(
+        "form",
+        {
+          class: "card reveal",
+          id: "adminCounters",
+          onSubmit: async (e) => {
+            e.preventDefault();
+
+            const jobs = [];
+
+            const views = String(viewsInput.value || "").trim();
+            const visitors = String(visitorsInput.value || "").trim();
+            const vote = String(voteInput.value || "").trim();
+            const exo = String(exonerateInput.value || "").trim();
+
+            if (views) jobs.push({ name: COUNTER_SITE_VIEWS, value: views });
+            if (visitors) jobs.push({ name: COUNTER_SITE_VISITORS, value: visitors });
+            if (vote) jobs.push({ name: COUNTER_SITE_VOTE, value: vote });
+            if (exo) jobs.push({ name: COUNTER_SITE_EXONERATE, value: exo });
+
+            const customName = String(customNameInput.value || "").trim();
+            const customValue = String(customValueInput.value || "").trim();
+            if (customName || customValue) {
+              if (!customName || !customValue) {
+                toast("Uzupełnij nazwę i wartość dla „dowolnego licznika”.");
+                return;
+              }
+              if (!isValidCounterName(customName)) {
+                toast("Niepoprawna nazwa licznika.");
+                return;
+              }
+              jobs.push({ name: customName, value: customValue });
+            }
+
+            if (!jobs.length) {
+              toast("Nic do ustawienia.");
+              return;
+            }
+
+            countersStatus.dataset.kind = "";
+            countersStatus.textContent = "Ustawianie…";
+
+            for (const j of jobs) {
+              // eslint-disable-next-line no-await-in-loop
+              const next = await adminSetCounterValue(j.name, j.value);
+              if (typeof next !== "number") {
+                countersStatus.dataset.kind = "err";
+                countersStatus.textContent = "Błąd podczas ustawiania liczników.";
+                return;
+              }
+              if (j.name === COUNTER_SITE_VIEWS) state.stats.views = next;
+              if (j.name === COUNTER_SITE_VISITORS) state.stats.visitors = next;
+              if (j.name === COUNTER_SITE_VOTE) state.stats.vote = next;
+              if (j.name === COUNTER_SITE_EXONERATE) state.stats.exonerate = next;
+              state.likes.counts.set(j.name, next);
+            }
+
+            updateStatsUI();
+            viewsInput.value = "";
+            visitorsInput.value = "";
+            voteInput.value = "";
+            exonerateInput.value = "";
+            customNameInput.value = "";
+            customValueInput.value = "";
+
+            countersStatus.dataset.kind = "ok";
+            countersStatus.textContent = "Zapisano.";
+            setTimeout(() => {
+              if (!countersStatus.isConnected) return;
+              countersStatus.textContent = "";
+              countersStatus.dataset.kind = "";
+            }, 2200);
+          },
+        },
+        [
+          el("h3", {}, "Ustawianie liczników"),
+          el(
+            "p",
+            {},
+            "Wpisz nowe wartości (nie musisz uzupełniać wszystkich). Potem kliknij „Ustaw”."
+          ),
+          currentRow,
+          el("div", { class: "grid two", style: { marginTop: "10px" } }, [
+            viewsInput,
+            visitorsInput,
+            voteInput,
+            exonerateInput,
+          ]),
+          el("div", { class: "grid two", style: { marginTop: "10px" } }, [
+            customNameInput,
+            customValueInput,
+          ]),
+          el("div", { class: "thread-actions" }, [
+            el("button", { class: "btn btn-primary", type: "submit" }, "Ustaw"),
+            refreshBtn,
+          ]),
+          countersStatus,
+        ]
+      );
+
+      const opsGrid = el("section", { class: "grid two", style: { marginTop: "14px" } }, [
+        countersForm,
+        toolsCard,
+      ]);
+
+      const select = el("select", {
+        class: "thread-input",
+        "aria-label": "Wybierz wątek komentarzy",
+      });
+
+      const groups = new Map();
+      for (const t of threads) {
+        const g = String(t.group || "Inne");
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g).push(t);
+      }
+
+      for (const [g, list] of groups) {
+        const og = el("optgroup", { label: g });
+        for (const t of list) {
+          og.appendChild(el("option", { value: t.key }, t.label));
+        }
+        select.appendChild(og);
+      }
+
+      const threadMount = el("div", { style: { marginTop: "12px" } }, []);
+      let activeKey = "";
+
+      function renderThread(key) {
+        const k = String(key || "").trim();
+        if (!k || k === activeKey) return;
+        activeKey = k;
+
+        const t = threads.find((x) => x.key === k) || threads[0];
+        threadMount.textContent = "";
+
+        const openBtn =
+          t?.openHash
+            ? el(
+                "a",
+                { class: "btn", href: t.openHash, style: { whiteSpace: "nowrap" } },
+                "Otwórz źródło"
+              )
+            : null;
+
+        const header = el("div", { class: "meta-row" }, [
+          el("span", { class: "badge accent" }, t.group || "Wątek"),
+          el("span", { class: "badge" }, t.label || "Dyskusja"),
+          el("span", { style: { flex: "1" } }),
+          openBtn,
+        ].filter(Boolean));
+
+        const panel = buildForumPanel({
+          threadKey: t.key,
+          placeholder: t.placeholder || "Napisz komentarz…",
+          autoLoad: true,
+        });
+
+        threadMount.appendChild(el("div", { class: "card reveal" }, [header, panel.node]));
+      }
+
+      select.addEventListener("change", () => renderThread(select.value));
+
+      // Default: forum site
+      select.value = threads[0]?.key || "";
+      renderThread(select.value);
+
+      const moderationCard = el("section", { class: "card reveal", style: { marginTop: "14px" } }, [
+        threadTitle,
+        threadLead,
+        select,
+        threadMount,
+      ]);
+
+      return el("div", {}, [title, lead, adminCard, statsBoxes, opsGrid, moderationCard]);
+    }
+
+    const title = el("h2", { class: "page-title reveal" }, "Admin");
+    const lead = el(
+      "p",
+      { class: "page-lead reveal" },
+      "Zaloguj się, aby moderować wpisy i przeglądać PV."
+    );
+
+    const passInput = el("input", {
+      class: "thread-input",
+      type: "password",
+      placeholder: "Hasło admina",
+      autocomplete: "current-password",
+      "aria-label": "Hasło admina",
+    });
+
+    const statusEl = el("div", { class: "thread-status", role: "status" }, "");
+    const btn = el("button", { class: "btn btn-primary", type: "submit" }, "Zaloguj");
+
+    const form = el(
+      "form",
+      {
+        class: "card reveal thread-form",
+        onSubmit: async (e) => {
+          e.preventDefault();
+          const password = String(passInput.value || "").trim();
+          if (!password) {
+            toast("Wpisz hasło.");
+            return;
+          }
+
+          statusEl.dataset.kind = "";
+          statusEl.textContent = "Logowanie…";
+          btn.disabled = true;
+
+          try {
+            const r = await fetch(counterUrl("/admin/login"), {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ password }),
+            });
+            const text = await r.text();
+            const json = safeJsonParse(text);
+            const token = String(json?.token || "").trim();
+            if (!r.ok || !token) throw new Error("login_failed");
+
+            setAdminToken(token);
+            toast("Tryb admin włączony.");
+            navTo("#/admin");
+            scheduleRender();
+          } catch {
+            statusEl.dataset.kind = "err";
+            statusEl.textContent = "Błędne hasło lub błąd serwera.";
+            btn.disabled = false;
+            return;
+          }
+        },
+      },
+      [passInput, el("div", { class: "thread-actions" }, [btn]), statusEl]
+    );
+
+    return el("div", {}, [title, lead, form]);
+  }
+
+  function pagePv(parts) {
+    if (isAdminEnabled()) return pagePvWiadomosci();
+    replaceUrlToAppRoot();
+    return el("div", {}, [
       el("h2", { class: "page-title reveal" }, "PV"),
+      el(
+        "p",
+        { class: "page-lead reveal" },
+        "Ta sekcja jest dostępna tylko dla admina."
+      ),
       el("div", { class: "card reveal", style: { marginTop: "12px" } }, [
-        el("h3", {}, "Ładowanie…"),
-        el("p", {}, "…"),
+        el("h3", {}, "Zaloguj się"),
+        el("p", {}, "Wejdź do panelu admina, żeby zobaczyć wiadomości."),
+        el("div", { class: "meta-row" }, [
+          el("a", { class: "btn btn-primary", href: "#/admin" }, "Panel admina"),
+        ]),
       ]),
     ]);
-
-    (async () => {
-      const hex = await sha256Hex(token);
-      if (hex && hex.toLowerCase() === ADMIN_SECRET_SHA256_HEX) {
-        setAdminEnabled(true);
-      }
-      replaceUrlToAppRoot();
-      try {
-        const base = location.href.split("#")[0];
-        history.replaceState(null, "", `${base}#/pv`);
-      } catch {
-        navTo("#/pv");
-      }
-      scheduleRender();
-    })();
-
-    return loading;
   }
 
   function getAllTags(items) {
@@ -2692,9 +3309,9 @@
     return el("div", {}, [title, lead, grid]);
   }
 
-  function pageKontakt() {
-    const ig = "https://www.instagram.com/tomaszewski_2026/";
-    const title = el("h2", { class: "page-title reveal" }, "Kontakt");
+	  function pageKontakt() {
+	    const ig = "https://www.instagram.com/tomaszewski_2026/";
+	    const title = el("h2", { class: "page-title reveal" }, "Kontakt");
     const lead = el(
       "p",
       { class: "page-lead reveal" },
@@ -2772,12 +3389,20 @@
           sendBtn.disabled = true;
 
           const element = `{${subject} ////// ${body}}`;
-          const ok = await basicDbAdd(CONTACT_KEY, element);
+          const r = await basicDbAdd(CONTACT_KEY, element);
 
           sendBtn.disabled = false;
-          if (!ok) {
+          if (!r.ok) {
             statusEl.dataset.kind = "err";
-            statusEl.textContent = "Nie udało się wysłać. Spróbuj ponownie.";
+            const code = String(r.error || "");
+            const wait = Number(r.retryAfter) || 0;
+            let msg = "Nie udało się wysłać. Spróbuj ponownie.";
+            if (code === "rate_limited" && wait) msg = `Za dużo żądań. Poczekaj ${wait}s.`;
+            else if (r.status === 429 && wait) msg = `Za dużo żądań. Poczekaj ${wait}s.`;
+            else if (code === "admin_required") msg = "Brak uprawnień.";
+            else if (code === "payload_too_large") msg = "Wiadomość jest za długa.";
+            else if (code === "fetch_failed") msg = "Błąd sieci. Sprawdź połączenie i spróbuj ponownie.";
+            statusEl.textContent = msg;
             return;
           }
 
@@ -2808,13 +3433,453 @@
       ]
     );
 
-    return el("div", {}, [title, lead, form]);
-  }
+	    return el("div", {}, [title, lead, form]);
+	  }
 
-  function parsePvMessageElement(raw) {
-    const s = String(raw || "").trim();
-    if (!s) return null;
-    const json = safeJsonParse(s);
+	  function pageTest() {
+	    const title = el("h2", { class: "page-title reveal" }, "Test / Diagnostyka");
+	    const lead = el(
+	      "p",
+	      { class: "page-lead reveal" },
+	      "Ta strona sprawdza połączenie z backendem (/api) i usługą LICZNIK."
+	    );
+
+	    const info = el("section", { class: "card reveal" }, [
+	      el("h3", {}, "Konfiguracja"),
+	      el("div", { class: "meta-row" }, [
+	        el("span", { class: "badge" }, `Origin: ${location.origin}`),
+	        el("span", { class: "badge accent" }, `API: ${API_BASE}`),
+	        el("span", { class: "badge" }, `Admin: ${isAdminEnabled() ? "TAK" : "NIE"}`),
+	        el("span", { class: "badge" }, `Bot: ${isProbablyBot() ? "TAK" : "NIE"}`),
+	      ]),
+	      el(
+	        "p",
+	        { style: { marginTop: "10px" } },
+	        "Jeśli endpointy /api zwracają 404 albo HTML, to znaczy że frontend nie trafia w backend. Rozwiązanie: hostuj stronę na backendzie albo ustaw w index.html meta staszek-api-base na pełny URL backendu."
+	      ),
+	    ]);
+
+	    const actionsStatus = el(
+	      "div",
+	      { class: "thread-status reveal", role: "status", style: { marginTop: "12px" } },
+	      ""
+	    );
+
+	    const outGrid = el("div", { class: "grid", style: { marginTop: "12px" } });
+
+	    function preview(text, max = 520) {
+	      const t = String(text || "").trim();
+	      if (!t) return "";
+	      return t.length > max ? `${t.slice(0, max)}…` : t;
+	    }
+
+	    async function fetchDiag(path, opts = {}) {
+	      const url = counterUrl(path);
+	      try {
+	        const r = await fetch(url, {
+	          cache: "no-store",
+	          mode: "cors",
+	          ...opts,
+	          headers: {
+	            ...(opts.headers || {}),
+	          },
+	        });
+	        const text = await r.text().catch(() => "");
+	        return {
+	          ok: r.ok,
+	          status: r.status,
+	          url,
+	          contentType: String(r.headers.get("content-type") || ""),
+	          hint: String(r.headers.get("x-hint") || ""),
+	          text,
+	        };
+	      } catch (e) {
+	        return {
+	          ok: false,
+	          status: 0,
+	          url,
+	          contentType: "",
+	          hint: "",
+	          text: "",
+	          error: String(e?.message || e || "fetch_failed"),
+	        };
+	      }
+	    }
+
+	    function classifyResult(r, expect = {}) {
+	      const body = String(r.text || "");
+	      const isHtml = /<!doctype html|<html/i.test(body);
+	      const json = safeJsonParse(body);
+	      const errorCode = json?.error ? String(json.error) : "";
+	      const okField = typeof json?.ok === "boolean" ? json.ok : null;
+
+	      if (r.error) {
+	        return {
+	          kind: "err",
+	          badge: "BŁĄD",
+	          why:
+	            "Nie udało się wykonać requestu (sieć albo CORS). Jeśli backend jest na innej domenie: ustaw CORS_ORIGINS w backendzie na origin frontendu.",
+	        };
+	      }
+
+	      if (r.status === 404 || isHtml) {
+	        return {
+	          kind: "err",
+	          badge: "NIE",
+	          why:
+	            "Backend nie odpowiada pod tym adresem (/api). Ustaw meta staszek-api-base na adres backendu albo hostuj stronę na backendzie.",
+	        };
+	      }
+
+	      if (errorCode === "missing_api_key") {
+	        return {
+	          kind: "err",
+	          badge: "NIE",
+	          why:
+	            "Backend nie ma ustawionego LICZNIK_API_KEY (albo API_KEY). Dodaj do .env i zrób restart/redeploy backendu.",
+	        };
+	      }
+
+	      if (expect.configured) {
+	        const configured = Boolean(json?.configured);
+	        if (configured) return { kind: "ok", badge: "OK", why: "" };
+	        return {
+	          kind: "err",
+	          badge: "NIE",
+	          why: "Backend nie ma ustawionego TOGETHER_API_KEY — moderacja komentarzy nie zadziała.",
+	        };
+	      }
+
+	      if (errorCode === "invalid_password" && r.status === 401) {
+	        return {
+	          kind: "ok",
+	          badge: "OK",
+	          why: "Admin jest skonfigurowany (to test bez hasła, więc 401 jest oczekiwane).",
+	        };
+	      }
+
+	      if (r.status === 401 && okField === false) {
+	        return {
+	          kind: "ok",
+	          badge: "OK",
+	          why: "Nie jesteś zalogowany jako admin (to normalne).",
+	        };
+	      }
+
+	      if (r.status === 401) {
+	        return {
+	          kind: "warn",
+	          badge: "401",
+	          why:
+	            errorCode === "admin_required"
+	              ? "To jest OK — ten endpoint jest tylko dla admina."
+	              : "401 oznacza zwykle zły klucz LICZNIK_API_KEY albo brak uprawnień.",
+	        };
+	      }
+
+	      if (expect.numeric) {
+	        const n = parseCounterValue(body);
+	        if (typeof n === "number") return { kind: "ok", badge: "OK", why: "" };
+	        return {
+	          kind: "err",
+	          badge: "NIE",
+	          why: "Odpowiedź nie jest liczbą — sprawdź body poniżej (często to JSON z błędem).",
+	        };
+	      }
+
+	      if (expect.status && r.status !== expect.status) {
+	        return { kind: "warn", badge: String(r.status), why: "Status nie jest oczekiwany." };
+	      }
+
+	      return r.ok ? { kind: "ok", badge: "OK", why: "" } : { kind: "warn", badge: "WARN", why: "" };
+	    }
+
+	    function addCheck({ name, description, requestLabel, run }) {
+	      const badge = el("span", { class: "badge" }, "…");
+	      const reqEl = el(
+	        "div",
+	        { style: { marginTop: "8px", color: "rgba(255,255,255,0.78)", fontSize: "12px" } },
+	        requestLabel
+	      );
+	      const descEl = description ? el("p", { style: { marginTop: "8px" } }, description) : null;
+	      const whyEl = el("p", { style: { marginTop: "10px" } }, "");
+	      const bodyEl = el(
+	        "div",
+	        { class: "thread-msg", style: { marginTop: "10px", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: "12px", opacity: "0.92" } },
+	        ""
+	      );
+	      const hintEl = el(
+	        "div",
+	        { class: "thread-msg", style: { marginTop: "8px", fontSize: "12px", color: "rgba(255,255,255,0.72)" } },
+	        ""
+	      );
+
+	      const card = el("section", { class: "card reveal" }, [
+	        el("div", { class: "post-title" }, [el("h3", {}, name), badge]),
+	        descEl,
+	        reqEl,
+	        whyEl,
+	        bodyEl,
+	        hintEl,
+	      ].filter(Boolean));
+
+	      function setBadge(kind, text) {
+	        badge.className = `badge${kind === "ok" ? " ok" : kind === "warn" ? " warn" : ""}`;
+	        badge.textContent = text;
+	      }
+
+	      async function exec() {
+	        setBadge("", "…");
+	        whyEl.textContent = "";
+	        bodyEl.textContent = "";
+	        hintEl.textContent = "";
+
+	        const r = await run();
+	        const classification = classifyResult(r, r.expect || {});
+	        setBadge(classification.kind === "err" ? "warn" : classification.kind, classification.badge);
+
+	        if (classification.why) whyEl.textContent = classification.why;
+
+	        const ct = r.contentType ? `content-type: ${r.contentType}` : "";
+	        const statusLine = r.status ? `status: ${r.status}` : "";
+	        const errLine = r.error ? `error: ${r.error}` : "";
+	        const meta = [statusLine, ct, errLine].filter(Boolean).join(" • ");
+	        if (meta) hintEl.textContent = meta;
+	        if (r.hint) {
+	          hintEl.textContent = hintEl.textContent
+	            ? `${hintEl.textContent}\n${r.hint}`
+	            : r.hint;
+	        }
+
+	        const body = preview(r.text, 900);
+	        if (body) bodyEl.textContent = body;
+	      }
+
+	      outGrid.appendChild(card);
+	      return exec;
+	    }
+
+	    const checks = [];
+	    checks.push(
+	      addCheck({
+	        name: "Backend",
+	        description: "Czy /api działa i odpowiada.",
+	        requestLabel: `GET ${counterUrl("/healthz")}`,
+	        run: async () => {
+	          const r = await fetchDiag("/healthz");
+	          r.expect = { status: 200 };
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "Deploy / wersja",
+	        description: "Kiedy był ostatni deploy backendu (DEPLOYED_AT / K_REVISION).",
+	        requestLabel: `GET ${counterUrl("/deploy")}`,
+	        run: async () => {
+	          const r = await fetchDiag("/deploy");
+	          r.expect = { status: 200 };
+	          if (r.ok) {
+	            const j = safeJsonParse(r.text);
+	            if (j && typeof j === "object") {
+	              const deployedAt = String(j.deployed_at || "").trim();
+	              const startedAt = String(j.server_started_at || "").trim();
+	              const service = String(j.service || "").trim();
+	              const revision = String(j.revision || "").trim();
+	              const gitSha = String(j.git_sha || "").trim();
+	              const lines = [];
+	              if (deployedAt) lines.push(`deployed_at: ${deployedAt}`);
+	              else if (startedAt) lines.push(`server_started_at: ${startedAt}`);
+	              if (service) lines.push(`service: ${service}`);
+	              if (revision) lines.push(`revision: ${revision}`);
+	              if (gitSha) lines.push(`git_sha: ${gitSha}`);
+	              if (lines.length) r.text = lines.join("\n");
+	            }
+	          }
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "Moderacja (Together)",
+	        description: "Czy backend ma ustawione TOGETHER_API_KEY (bez tego wpisy na forum będą odrzucane).",
+	        requestLabel: `GET ${counterUrl("/moderation/active")}`,
+	        run: async () => {
+	          const r = await fetchDiag("/moderation/active");
+	          r.expect = { configured: true };
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "LICZNIK: wyświetlenia",
+	        description: "Czy backend potrafi pobrać licznik (wymaga LICZNIK_API_KEY).",
+	        requestLabel: `GET ${counterUrl(`/ile/${encodeURIComponent(COUNTER_SITE_VIEWS)}`)}`,
+	        run: async () => {
+	          const r = await fetchDiag(`/ile/${encodeURIComponent(COUNTER_SITE_VIEWS)}`);
+	          r.expect = { numeric: true };
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "LICZNIK: osoby",
+	        requestLabel: `GET ${counterUrl(`/ile/${encodeURIComponent(COUNTER_SITE_VISITORS)}`)}`,
+	        run: async () => {
+	          const r = await fetchDiag(`/ile/${encodeURIComponent(COUNTER_SITE_VISITORS)}`);
+	          r.expect = { numeric: true };
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "LICZNIK: deklaracje (Głosuję na Staśka)",
+	        requestLabel: `GET ${counterUrl(`/ile/${encodeURIComponent(COUNTER_SITE_VOTE)}`)}`,
+	        run: async () => {
+	          const r = await fetchDiag(`/ile/${encodeURIComponent(COUNTER_SITE_VOTE)}`);
+	          r.expect = { numeric: true };
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "Forum (odczyt)",
+	        description: "Czy można odczytać publiczną bazę podstawową (bez admina).",
+	        requestLabel: `GET ${counterUrl(`/baza-podstawowa/odczyt/${encodeURIComponent(FORUM_SITE_KEY)}?format=json`)}`,
+	        run: async () => {
+	          const r = await fetchDiag(`/baza-podstawowa/odczyt/${encodeURIComponent(FORUM_SITE_KEY)}?format=json`);
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "Admin (konfiguracja)",
+	        description:
+	          "Sprawdza czy backend ma ustawione ADMIN_PASSWORD i ADMIN_TOKEN_SECRET (bez ujawniania hasła).",
+	        requestLabel: `POST ${counterUrl("/admin/login")} (password: \"\")`,
+	        run: async () => {
+	          const r = await fetchDiag("/admin/login", {
+	            method: "POST",
+	            headers: { "content-type": "application/json" },
+	            body: JSON.stringify({ password: "" }),
+	          });
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "Admin (sesja)",
+	        description: "Czy aktualnie w przeglądarce jest zalogowany admin (token).",
+	        requestLabel: `GET ${counterUrl("/admin/me")} (Authorization: Bearer …)`,
+	        run: async () => {
+	          const r = await fetchDiag("/admin/me", { headers: authHeaders() });
+	          return r;
+	        },
+	      })
+	    );
+
+	    checks.push(
+	      addCheck({
+	        name: "PV (ochrona)",
+	        description:
+	          "Bez admina powinno zwracać 401. Jeśli jesteś adminem, przejdź do #/pv.",
+	        requestLabel: `GET ${counterUrl(`/baza-podstawowa/odczyt/${encodeURIComponent("pv-mesege-staszek")}?format=json`)}`,
+	        run: async () => {
+	          const r = await fetchDiag(`/baza-podstawowa/odczyt/${encodeURIComponent("pv-mesege-staszek")}?format=json`, {
+	            headers: authHeaders(),
+	          });
+	          // Never display PV contents on the diagnostics screen.
+	          if (r.ok) {
+	            const items = parseBasicDbItems(r.text);
+	            r.text = `OK (ukryto treść) • wiadomości: ${items.length}`;
+	          }
+	          return r;
+	        },
+	      })
+	    );
+
+	    const rerunBtn = el(
+	      "button",
+	      {
+	        class: "btn btn-primary reveal",
+	        type: "button",
+	        style: { marginTop: "12px" },
+	        onClick: () => runAll(true),
+	      },
+	      "Uruchom testy ponownie"
+	    );
+
+	    const copyBtn = el(
+	      "button",
+	      {
+	        class: "btn reveal",
+	        type: "button",
+	        style: { marginTop: "12px", marginLeft: "8px" },
+	        onClick: async () => {
+	          const apiResolved = (() => {
+	            try {
+	              const u = new URL(API_BASE, location.origin);
+	              return u.toString().replace(/\/$/, "");
+	            } catch {
+	              return API_BASE;
+	            }
+	          })();
+	          const txt = [
+	            `Origin: ${location.origin}`,
+	            `Path: ${location.pathname}${location.search}${location.hash}`,
+	            `API: ${apiResolved}`,
+	            `Admin: ${isAdminEnabled() ? "TAK" : "NIE"}`,
+	          ].join("\n");
+	          const ok = await copyText(txt);
+	          toast(ok ? "Skopiowano info." : "Nie udało się skopiować.");
+	        },
+	      },
+	      "Kopiuj info"
+	    );
+
+	    async function runAll(showToast = false) {
+	      actionsStatus.dataset.kind = "";
+	      actionsStatus.textContent = "Testowanie…";
+	      for (const fn of checks) {
+	        // eslint-disable-next-line no-await-in-loop
+	        await fn();
+	      }
+	      actionsStatus.dataset.kind = "ok";
+	      actionsStatus.textContent = "Gotowe.";
+	      if (showToast) toast("Testy zakończone.");
+	      setTimeout(() => {
+	        if (!actionsStatus.isConnected) return;
+	        actionsStatus.textContent = "";
+	        actionsStatus.dataset.kind = "";
+	      }, 2200);
+	    }
+
+	    // auto-run once
+	    setTimeout(() => runAll(false), 60);
+
+	    return el("div", {}, [title, lead, info, el("div", {}, [rerunBtn, copyBtn]), actionsStatus, outGrid]);
+	  }
+
+	  function parsePvMessageElement(raw) {
+	    const s = String(raw || "").trim();
+	    if (!s) return null;
+	    const json = safeJsonParse(s);
     if (json && typeof json === "object") {
       const subject = String(json.temat ?? json.subject ?? "").trim();
       const body = String(json.tresc ?? json.treść ?? json.body ?? "").trim();
@@ -3047,10 +4112,10 @@
     });
   }
 
-  function render() {
-    const { id, parts, query } = parseRoute();
-    const prevRoute = state.route;
-    state.route = id;
+	  function render() {
+	    const { id, parts, query } = parseRoute();
+	    const prevRoute = state.route;
+	    state.route = id;
 
     const app = $("#app");
     if (!app) return;
@@ -3060,14 +4125,15 @@
     const content = el("main", { class: "content", id: "content" });
     const footer = buildFooter();
 
-    let page;
-    if (id === "aktualnosci") page = pageAktualnosci();
-    else if (id === "plakaty") page = pagePlakaty();
-    else if (id === "pomysly") page = pagePomysly();
-    else if (id === "kontakt") page = pageKontakt();
-    else if (id === "pv") page = pagePv(parts);
-    else if (id === "admin") page = pageAdmin(parts);
-    else page = pageStart();
+	    let page;
+	    if (id === "aktualnosci") page = pageAktualnosci();
+	    else if (id === "plakaty") page = pagePlakaty();
+	    else if (id === "pomysly") page = pagePomysly();
+	    else if (id === "kontakt") page = pageKontakt();
+	    else if (id === "test") page = pageTest();
+	    else if (id === "pv") page = pagePv(parts);
+	    else if (id === "admin") page = pageAdmin(parts);
+	    else page = pageStart();
 
     content.appendChild(page);
     app.appendChild(topbar);
@@ -3092,17 +4158,18 @@
       }
     }
 
-    document.title = {
-      start: "STASZEK DLA STASZICA",
-      aktualnosci: "Aktualności • STASZEK DLA STASZICA",
-      plakaty: "Plakaty • STASZEK DLA STASZICA",
-      pomysly: "Pomysły • STASZEK DLA STASZICA",
-      kontakt: "Kontakt • STASZEK DLA STASZICA",
-      pv: "PV • Wiadomości",
-      admin: "Admin",
-    }[id] || "STASZEK DLA STASZICA";
+	    document.title = {
+	      start: "STASZEK DLA STASZICA",
+	      aktualnosci: "Aktualności • STASZEK DLA STASZICA",
+	      plakaty: "Plakaty • STASZEK DLA STASZICA",
+	      pomysly: "Pomysły • STASZEK DLA STASZICA",
+	      kontakt: "Kontakt • STASZEK DLA STASZICA",
+	      test: "Test • STASZEK DLA STASZICA",
+	      pv: "PV • Wiadomości",
+	      admin: "Admin",
+	    }[id] || "STASZEK DLA STASZICA";
 
-    setRobotsMeta(id === "pv" || id === "admin" ? "noindex, nofollow" : "");
+	    setRobotsMeta(id === "pv" || id === "admin" || id === "test" ? "noindex, nofollow" : "");
 
     if (id === "pomysly" && query) {
       const m = query.match(/(?:^|&)punkt=([^&]+)/);
@@ -3170,6 +4237,7 @@
       return;
     }
 
+    restoreAdminSessionFromStorage();
     state.likes.set = loadLikeSet();
     initSiteStats();
 
